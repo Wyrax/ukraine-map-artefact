@@ -124,12 +124,27 @@ body {
 .pal[hidden] {
   display: none;
 }
+/* the palette button and the language switch share one height */
+.ua-headtools {
+  --ctl-h: 34px;
+}
+.ua-headtools .seg {
+  box-sizing: border-box;
+  height: var(--ctl-h);
+  flex-wrap: nowrap;
+}
+.ua-headtools .seg__btn {
+  display: inline-flex;
+  align-items: center;
+}
 .pal__btn {
+  box-sizing: border-box;
+  height: var(--ctl-h, 34px);
   display: inline-flex;
   align-items: center;
   gap: 8px;
   list-style: none;
-  padding: 7px 12px;
+  padding: 0 12px;
   border-radius: 10px;
   background: var(--chip-bg);
   color: var(--ink-2);
@@ -798,19 +813,28 @@ body {
   gap: 16px;
   min-width: 0;
 }
+/* side panels collapse like the data table: the summary (title) is the toggle */
 .panel {
-  padding: 14px 16px 16px;
+  padding: 0 16px;
 }
 .panel[hidden] {
   display: none;
 }
+.panel > summary {
+  margin: 0 -16px;
+  padding: 14px 16px 10px;
+}
+.panel:not([open]) > summary {
+  padding-bottom: 14px;
+}
 .panel__title {
-  margin: 0 0 10px;
+  margin: 0;
   font: 600 0.9375rem/1.3 var(--font-display);
   text-wrap: balance;
 }
 .panel__body {
   min-width: 0;
+  padding-bottom: 16px;
 }
 
 /* ranking */
@@ -1207,8 +1231,55 @@ body {
 .ua-tablewrap > summary,
 .ua-panelcfg > summary {
   padding: 12px 16px;
-  cursor: pointer;
   font: 600 0.9375rem var(--font-display);
+}
+/* one disclosure arrow for every collapsible block: data table, panel settings, side panels */
+.ua-tablewrap > summary,
+.ua-panelcfg > summary,
+.panel > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+.ua-tablewrap > summary::-webkit-details-marker,
+.ua-panelcfg > summary::-webkit-details-marker,
+.panel > summary::-webkit-details-marker {
+  display: none;
+}
+.ua-tablewrap > summary::before,
+.ua-panelcfg > summary::before,
+.panel > summary::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin: 0 2px;
+  border-right: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+.ua-tablewrap[open] > summary::before,
+.ua-panelcfg[open] > summary::before,
+.panel[open] > summary::before {
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.ua-tablewrap > summary:focus-visible,
+.ua-panelcfg > summary:focus-visible,
+.panel > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ua-tablewrap > summary::before,
+  .ua-panelcfg > summary::before,
+  .panel > summary::before {
+    transition: none;
+  }
 }
 .ua-panelcfg[hidden] {
   display: none;

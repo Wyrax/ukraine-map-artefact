@@ -102,7 +102,8 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
 - Every layer and panel follows the timeline; domains are global across periods unless `options.domain = "per-period"`.
 - A data table (sortable, current period) is always added under the map, and above it a collapsible
   "Налаштування панелей" block with a toggle per side panel (viewer's choice kept in localStorage; hiding all panels
-  gives the map the full width). `panels[].hidden: true` starts a panel hidden, `panels[].id` keeps the choice stable
+  gives the map the full width). Every side panel is a `<details>`: its title collapses it like the table (collapsed
+  panels remembered in localStorage; charts redraw at full width when reopened). `panels[].hidden: true` starts a panel hidden, `panels[].id` keeps the choice stable
   when panels are reordered, `options.panelSettings: false` removes the block.
 
 ## Map conventions

@@ -38,6 +38,15 @@ function storedHiddenPanels() {
     return null;
   }
 }
+/** A list of strings kept in localStorage (empty when missing or unreadable). */
+function storedList(k) {
+  try {
+    const v = JSON.parse(store.get(k) || '[]');
+    return Array.isArray(v) ? v.map(String) : [];
+  } catch {
+    return [];
+  }
+}
 
 export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) {
   const root = document.getElementById('ua-app');
@@ -334,12 +343,25 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
         console.warn(`[ua-map] Panel type "${pc.type}" is not bundled`);
         continue;
       }
-      if (hidden.includes(panelKey(pc, i))) continue;
+      const key = panelKey(pc, i);
+      if (hidden.includes(key)) continue;
       const body = h('div', { class: 'panel__body' });
-      const title = panelTitle(pc);
-      const sec = h('section', { class: `ua-card panel panel--${pc.type}` }, title ? h('h2', { class: 'panel__title' }, title) : null, body);
+      const title = panelTitle(pc) || pc.type;
+      // collapsible like the data table: the title is the toggle; collapsed panels are remembered per viewer
+      const sec = h(
+        'details',
+        { class: `ua-card panel panel--${pc.type}`, open: !storedList('ua-panels-collapsed').includes(key) },
+        h('summary', { class: 'panel__head' }, h('h2', { class: 'panel__title' }, title)),
+        body,
+      );
       host.appendChild(sec);
-      panels.push({ ...type.mount(body, ctx, pc), sec });
+      const entry = { ...type.mount(body, ctx, pc), sec };
+      sec.addEventListener('toggle', () => {
+        const list = storedList('ua-panels-collapsed').filter((k) => k !== key);
+        store.set('ua-panels-collapsed', JSON.stringify(sec.open ? list : [...list, key]));
+        if (sec.open) entry.resize?.(); // drawn while closed at a guessed width
+      });
+      panels.push(entry);
     }
     host.hidden = !panels.length;
     root.classList.toggle('no-panels', !panels.length);
