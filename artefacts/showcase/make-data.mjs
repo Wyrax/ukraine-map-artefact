@@ -40,9 +40,21 @@ for (let y = 2025, m = 0; y < 2026 || m < 10; ) {
 }
 
 const values = [];
-const regionBias = Object.fromEntries(REGIONS.map((r) => [r.id, { growth: 0.015 + rnd() * 0.035, prodTilt: (rnd() - 0.5) * 0.25, start: periods.length * rnd() * 0.25 }]));
+// Each region gets its own production share, spread from ~8 % to ~92 % and drifting a little month to month,
+// so the "Прогрес" view (production share) shows the whole 5–95 % range rather than everything near 75 %.
+const regionBias = Object.fromEntries(
+  REGIONS.map((r) => [r.id, { growth: 0.015 + rnd() * 0.035, prod0: 0.08 + rnd() * 0.84, drift: (rnd() - 0.5) * 0.012, start: periods.length * rnd() * 0.25 }]),
+);
 // Kyiv and Crimea have data from the first month
 for (const id of ['UA-30', 'UA-43']) regionBias[id].start = 0;
+// spread the starting shares evenly over 6–94 % in a shuffled order, so both ends of the range always appear
+const order = REGIONS.map((r) => ({ id: r.id, k: rnd() })).sort((a, b) => a.k - b.k);
+order.forEach(({ id }, i) => {
+  regionBias[id].prod0 = 0.06 + (0.88 * i) / (order.length - 1);
+  regionBias[id].drift = (regionBias[id].drift / 0.012) * 0.005; // gentler drift: ±5 % over the period
+});
+const rest = ENVS.filter((e) => e.id !== 'prod');
+const restSum = rest.reduce((a, e) => a + e.share, 0);
 for (const r of REGIONS) {
   const w = weight[r.id];
   if (!w) continue; // no data for this region
@@ -50,10 +62,10 @@ for (const r of REGIONS) {
   periods.forEach((p, i) => {
     if (i < b.start) return; // some regions join later
     const base = w * 420 * Math.pow(1 + b.growth, i) * (0.92 + rnd() * 0.16);
+    const prod = Math.max(0.05, Math.min(0.95, b.prod0 + b.drift * i + (rnd() - 0.5) * 0.02));
     for (const e of ENVS) {
-      let share = e.share;
-      if (e.id === 'prod') share = Math.max(0.35, Math.min(0.85, share + b.prodTilt + i * 0.004));
-      else share = share * (1 - (b.prodTilt + i * 0.004) * 0.9);
+      // the other environments share what production leaves, in their usual proportions
+      const share = e.id === 'prod' ? prod : ((1 - prod) * e.share) / restSum;
       values.push([r.id, e.id, p, Math.round(base * share)]);
     }
   });

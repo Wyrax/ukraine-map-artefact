@@ -9,6 +9,7 @@ import { prepareData, buildMeasures, domainOf, valuesOf } from './core/data.js';
 import { createMap } from './core/map.js';
 import { createTooltip } from './core/tooltip.js';
 import { createTimeline } from './core/timeline.js';
+import { encodeSnapshot, decodeSnapshot } from './core/snapshot.js';
 import { BY_ID, REGIONS } from '../map/catalog.js';
 
 const readJSON = (id) => JSON.parse(document.getElementById(id).textContent);
@@ -59,22 +60,83 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
   const opts = config.options || {};
   const modes = config.modes?.length ? config.modes : [{ id: 'default', layers: [{ type: 'choropleth', value: data.series[0].id }] }];
 
-  const state = createState({
+  // ---------- settings: defaults ← saved in this browser ← the share link (#ua-…) ----------
+  const defaults = {
     period: opts.startPeriod === 'first' ? 0 : data.periods.length - 1,
     mode: modes[0].id,
-    lang: store.get('ua-lang') || opts.lang || 'uk',
-    hover: null,
+    lang: opts.lang || 'uk',
     selected: [],
     // region names: "auto" = shown unless the map is phone-narrow (re-checked on resize); true / false once toggled
     labels: opts.labels ?? 'auto',
     // occupation overlays shown at start: "2014" and/or "now" (older names: options.ordlo2020, "2015")
     occupation: [].concat(opts.occupation ?? (opts.ordlo2020 ? ['2014'] : [])).map((x) => (String(x) === '2015' ? '2014' : String(x))),
-    // colour preset: options.palette, or the viewer's last pick when the picker is on
-    palette: (config.palettes || []).some((p) => p.id === store.get('ua-palette')) ? store.get('ua-palette') : opts.palette || 'green',
+    // colour preset (the picker, when on, lets the viewer change it)
+    palette: opts.palette || 'green',
     // view options chosen in the block under the view tabs: { "<mode>/<layer index>/<key>": value }
     viewOpts: {},
-    // side panels switched off in "Налаштування панелей" (viewer's choice, else panels[].hidden in the config)
-    hiddenPanels: storedHiddenPanels() ?? (config.panels || []).flatMap((pc, i) => (pc.hidden ? [panelKey(pc, i)] : [])),
+    // side panels switched off in "Налаштування панелей" (else panels[].hidden in the config) and collapsed ones
+    hiddenPanels: (config.panels || []).flatMap((pc, i) => (pc.hidden ? [panelKey(pc, i)] : [])),
+    collapsedPanels: [],
+    // bottom blocks ("Налаштування панелей", "Таблиця даних") open or closed, and per-panel choices
+    panelCfgOpen: false,
+    tableOpen: false,
+    panelOpts: {},
+  };
+  // short keys keep the link short; the period travels as its id so it survives months being added later
+  const SNAP = { m: 'mode', p: 'period', l: 'lang', s: 'selected', n: 'labels', o: 'occupation', c: 'palette', v: 'viewOpts', h: 'hiddenPanels', k: 'collapsedPanels', g: 'panelCfgOpen', t: 'tableOpen', q: 'panelOpts' };
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const isFlat = (o) => !!o && typeof o === 'object' && !Array.isArray(o) && Object.values(o).every((v) => ['string', 'number', 'boolean'].includes(typeof v));
+  const strList = (v) => (Array.isArray(v) ? v.map(String) : null);
+  /** Compact snapshot of the settings: only what differs from the defaults. */
+  function toSnap(st) {
+    const out = {};
+    for (const [k, key] of Object.entries(SNAP)) {
+      const v = key === 'period' ? data.periods[st.period] : st[key];
+      const d = key === 'period' ? data.periods[defaults.period] : defaults[key];
+      if (!same(v, d)) out[k] = v;
+    }
+    return out;
+  }
+  /** Snapshot → state fields, dropping anything this page does not have (unknown views, months, regions…). */
+  function fromSnap(o) {
+    const st = {};
+    if (!o || typeof o !== 'object') return st;
+    if (modes.some((m) => m.id === o.m)) st.mode = o.m;
+    if (o.p != null && data.periods.includes(String(o.p))) st.period = data.periods.indexOf(String(o.p));
+    if (o.l === 'uk' || o.l === 'en') st.lang = o.l;
+    if (strList(o.s)) st.selected = strList(o.s).filter((id) => data.regionIds.includes(id)).slice(0, opts.maxSelected ?? Infinity);
+    if (o.n === 'auto' || o.n === true || o.n === false) st.labels = o.n;
+    if (strList(o.o)) st.occupation = strList(o.o).filter((x) => x === '2014' || x === 'now');
+    if ((config.palettes || []).some((p) => p.id === o.c)) st.palette = o.c;
+    if (isFlat(o.v)) st.viewOpts = o.v;
+    if (strList(o.h)) st.hiddenPanels = strList(o.h);
+    if (strList(o.k)) st.collapsedPanels = strList(o.k);
+    if (typeof o.g === 'boolean') st.panelCfgOpen = o.g;
+    if (typeof o.t === 'boolean') st.tableOpen = o.t;
+    if (o.q && typeof o.q === 'object' && !Array.isArray(o.q) && Object.values(o.q).every(isFlat)) st.panelOpts = o.q;
+    return st;
+  }
+  function storedSettings() {
+    try {
+      const saved = JSON.parse(store.get('ua-state') || 'null');
+      if (saved) return fromSnap(saved);
+    } catch {
+      /* unreadable: ignore */
+    }
+    // what earlier versions of the page kept
+    const st = {};
+    if (store.get('ua-lang') === 'uk' || store.get('ua-lang') === 'en') st.lang = store.get('ua-lang');
+    if ((config.palettes || []).some((p) => p.id === store.get('ua-palette'))) st.palette = store.get('ua-palette');
+    if (storedHiddenPanels()) st.hiddenPanels = storedHiddenPanels();
+    if (storedList('ua-panels-collapsed').length) st.collapsedPanels = storedList('ua-panels-collapsed');
+    return st;
+  }
+
+  const state = createState({
+    ...defaults,
+    ...storedSettings(),
+    ...fromSnap(decodeSnapshot(location.hash)),
+    hover: null,
     playing: false,
   });
 
@@ -416,18 +478,18 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
       if (hidden.includes(key)) continue;
       const body = h('div', { class: 'panel__body' });
       const title = panelTitle(pc) || pc.type;
-      // collapsible like the data table: the title is the toggle; collapsed panels are remembered per viewer
+      // collapsible like the data table: the title is the toggle; collapsed panels are part of the saved settings
       const sec = h(
         'details',
-        { class: `ua-card panel panel--${pc.type}`, open: !storedList('ua-panels-collapsed').includes(key) },
+        { class: `ua-card panel panel--${pc.type}`, open: !state.get().collapsedPanels.includes(key) },
         h('summary', { class: 'panel__head' }, h('h2', { class: 'panel__title' }, title)),
         body,
       );
       host.appendChild(sec);
-      const entry = { ...type.mount(body, ctx, pc), sec };
+      const entry = { ...type.mount(body, ctx, { ...pc, _key: key }), sec, key };
       sec.addEventListener('toggle', () => {
-        const list = storedList('ua-panels-collapsed').filter((k) => k !== key);
-        store.set('ua-panels-collapsed', JSON.stringify(sec.open ? list : [...list, key]));
+        const list = state.get().collapsedPanels.filter((k) => k !== key);
+        state.set({ collapsedPanels: sec.open ? list : [...list, key] });
         if (sec.open) entry.resize?.(); // drawn while closed at a guessed width
       });
       panels.push(entry);
@@ -445,7 +507,6 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     if (el.hidden) return;
     const { hiddenPanels } = state.get();
     const shown = list.filter(({ key }) => !hiddenPanels.includes(key)).length;
-    const wasOpen = el.open;
     clear(el);
     el.appendChild(h('summary', {}, `${ctx.t('panelSettings')} · ${shown}/${list.length}`));
     const chips = h('div', { class: 'chips', role: 'group', 'aria-label': ctx.t('panelSettings') });
@@ -459,7 +520,7 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     }
     if (shown < list.length) chips.appendChild(h('button', { type: 'button', class: 'chip chip--ghost', onclick: () => state.set({ hiddenPanels: [] }) }, ctx.t('showAllPanels')));
     el.appendChild(h('div', { class: 'ua-panelcfg__body' }, h('p', { class: 'ua-panelcfg__hint' }, ctx.t('panelSettingsHint')), chips));
-    el.open = wasOpen;
+    el.open = state.get().panelCfgOpen;
   }
 
   // ---------- data table ----------
@@ -609,20 +670,23 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
   applyHighlight();
   showOccupation(state.get().occupation);
   applyPalette(state.get().palette);
+  slot('panelcfg').open = state.get().panelCfgOpen;
+  tableEl.open = state.get().tableOpen;
 
   state.on((st, ch) => {
-    if (ch.has('lang')) {
-      store.set('ua-lang', st.lang);
+    // a language change redraws everything; the branches below then only add what it does not cover
+    const relang = ch.has('lang');
+    if (relang) {
       renderChrome();
+      renderShare();
       mountMode();
       mountPanels();
       renderTable();
       timeline.update();
       updateAria();
       applyHighlight();
-      return;
     }
-    if (ch.has('mode')) {
+    if (ch.has('mode') && !relang) {
       mountMode();
       renderChrome();
       for (const p of panels) p.update?.(ch);
@@ -630,12 +694,12 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
       updateAria();
       applyHighlight();
     }
-    if (ch.has('viewOpts') && !ch.has('mode')) {
+    if (ch.has('viewOpts') && !ch.has('mode') && !relang) {
       mountMode(); // redraws the current view with the chosen options (and the options block itself)
       updateAria();
       applyHighlight();
     }
-    if (ch.has('period')) {
+    if (ch.has('period') && !relang) {
       if (opts.domain === 'per-period') domainCache.clear();
       for (const l of active) l.update?.(ch);
       for (const p of panels) p.update?.(ch);
@@ -647,13 +711,13 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     }
     if (ch.has('period') || ch.has('playing')) timeline.update();
     if (ch.has('hover') || ch.has('selected')) applyHighlight();
-    if (ch.has('selected')) {
+    if (ch.has('selected') && !relang) {
       for (const l of active) l.update?.(ch);
       for (const p of panels) p.update?.(ch);
       renderChrome();
       updateAria();
     }
-    if (ch.has('labels')) {
+    if (ch.has('labels') && !relang) {
       renderLabels();
       renderChrome();
     }
@@ -662,16 +726,85 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
       renderChrome();
     }
     if (ch.has('palette')) {
-      store.set('ua-palette', st.palette);
       applyPalette(st.palette);
       renderPalette();
     }
-    if (ch.has('hiddenPanels')) {
-      store.set('ua-panels', JSON.stringify(st.hiddenPanels));
+    if ((ch.has('hiddenPanels') || ch.has('panelOpts')) && !relang) {
       mountPanels();
       renderPanelCfg();
       applyHighlight();
     }
+    // collapsed panels and the bottom blocks follow the settings (a link opened in this tab, "reset")
+    if (ch.has('collapsedPanels')) for (const p of panels) if (p.sec.open === st.collapsedPanels.includes(p.key)) p.sec.open = !p.sec.open;
+    if (ch.has('panelCfgOpen') && slot('panelcfg').open !== st.panelCfgOpen) slot('panelcfg').open = st.panelCfgOpen;
+    if (ch.has('tableOpen') && tableEl.open !== st.tableOpen) tableEl.open = st.tableOpen;
+    if (Object.values(SNAP).some((k) => ch.has(k))) saveSoon();
+  });
+
+  // ---------- saving the settings and the share link ----------
+  slot('panelcfg').addEventListener('toggle', () => state.set({ panelCfgOpen: slot('panelcfg').open }));
+  tableEl.addEventListener('toggle', () => state.set({ tableOpen: tableEl.open }));
+  const shareUrl = () => {
+    const base = String(config.publishedUrl || location.href).split('#')[0];
+    const snap = toSnap(state.get());
+    return Object.keys(snap).length ? `${base}#${encodeSnapshot(snap)}` : base;
+  };
+  let saveTimer = 0;
+  function saveSoon() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      store.set('ua-state', JSON.stringify(toSnap(state.get())));
+      const input = slot('share')?.querySelector('input');
+      if (input) input.value = shareUrl();
+    }, 300);
+  }
+  function resetSettings() {
+    for (const k of ['ua-state', 'ua-lang', 'ua-palette', 'ua-panels', 'ua-panels-collapsed']) store.set(k, '');
+    if (decodeSnapshot(location.hash)) location.hash = '';
+    timeline.stop();
+    state.set({ ...defaults, hover: null });
+  }
+  function renderShare() {
+    const el = slot('share');
+    if (!el) return;
+    clear(el);
+    const input = h('input', { type: 'text', class: 'ua-share__url', readonly: true, value: shareUrl(), 'aria-label': ctx.t('shareTitle'), onfocus: (e) => e.target.select() });
+    const copyBtn = h('button', { type: 'button', class: 'ua-btn' }, ctx.t('copyLink'));
+    const status = h('span', { class: 'ua-share__status', role: 'status' });
+    const say = (text, ok) => {
+      copyBtn.textContent = ok ? text : ctx.t('copyLink');
+      status.textContent = ok ? '' : text;
+      clearTimeout(copyBtn._t);
+      copyBtn._t = setTimeout(() => {
+        copyBtn.textContent = ctx.t('copyLink');
+        status.textContent = '';
+      }, 4000);
+    };
+    copyBtn.addEventListener('click', () => {
+      input.value = shareUrl();
+      const fallback = () => {
+        input.focus();
+        input.select();
+        say(ctx.t('copySelect'));
+      };
+      try {
+        navigator.clipboard.writeText(input.value).then(() => say(ctx.t('copied') + ' ✓', true), fallback);
+      } catch {
+        fallback();
+      }
+    });
+    el.append(
+      h('div', { class: 'ua-share__head' }, h('span', { class: 'ua-share__title' }, ctx.t('shareTitle')), h('button', { type: 'button', class: 'link-btn', onclick: resetSettings }, ctx.t('resetSettings'))),
+      h('div', { class: 'ua-share__row' }, input, copyBtn),
+      status,
+      h('p', { class: 'ua-share__hint' }, ctx.t('shareHint')),
+    );
+  }
+  renderShare();
+  // a share link opened in a tab that already shows the page
+  window.addEventListener('hashchange', () => {
+    const st = fromSnap(decodeSnapshot(location.hash));
+    if (Object.keys(st).length) state.set(st);
   });
 
   // glyph sizes and legends depend on rendered size

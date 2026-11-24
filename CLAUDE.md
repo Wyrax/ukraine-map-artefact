@@ -108,6 +108,12 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
   `size`, radar `normalize`, flows `curve` / `maxWidth`; every glyph view also gets S/M/L size. Not persisted.
   Columns stand on a base just below the anchor (`columnFrame` in `_glyph.js`); layers can return `labelOffset(id)`
   and `labelValue` (measure id) to place names and numbers.
+- **Saved settings and share link**: the view, its options, the month, language, palette, names, occupation layers,
+  selected regions, hidden/collapsed panels, the two bottom blocks and the Dynamics "all regions" choice form one
+  snapshot (`toSnap`/`fromSnap` in app.js, only values that differ from the defaults). Restore order: defaults ←
+  `localStorage["ua-state"]` (saved as things change) ← `#ua-<base62>` in the URL (`src/lib/core/snapshot.js`; the
+  Artifact host passes only letters/digits/hyphens). The block under the timeline copies `publishedUrl#ua-…` and has
+  "Скинути налаштування". No server storage: the link works for signed-out visitors too.
 - Every layer and panel follows the timeline (play, to start, back, forward, to end, slider); domains are global
   across periods unless `options.domain = "per-period"`.
 - A data table (sortable, current period) is always added under the map, and above it a collapsible

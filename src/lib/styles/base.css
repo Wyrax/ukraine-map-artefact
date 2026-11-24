@@ -745,6 +745,78 @@ body {
   border-top: 1px solid var(--line);
   padding-top: 12px;
 }
+
+/* share link with the current settings, under the timeline */
+.ua-share {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.ua-share__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.ua-share__title {
+  font: 600 0.875rem var(--font-display);
+}
+.ua-share__row {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+.ua-share__url {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink-2);
+  font: 400 0.8125rem var(--font-ui);
+  text-overflow: ellipsis;
+}
+.ua-share__url:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.ua .ua-btn {
+  flex: none;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--surface);
+  font: 600 0.8125rem var(--font-ui);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ua .ua-btn:hover {
+  opacity: 0.88;
+}
+.ua .ua-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.ua-share__status {
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+.ua-share__status:empty {
+  display: none;
+}
+.ua-share__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  max-width: 72ch;
+}
 .tl-row {
   display: flex;
   align-items: center;

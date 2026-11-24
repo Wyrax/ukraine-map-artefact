@@ -12,7 +12,6 @@ import { niceTicks, linear } from '../core/scales.js';
 import { formatTick } from '../core/format.js';
 
 const MAX_COLOURED = 8; // categorical palette size: beyond it a colour would stand for two regions
-const viewMemo = new WeakMap(); // cfg → 'selected' | 'all', kept across re-mounts (language switch)
 
 export default {
   title: (ctx, cfg) => (cfg.value ? ctx.label(cfg.value) : ctx.t('timeline')),
@@ -24,7 +23,10 @@ export default {
     }
     const bySeries = !!cfg.series;
     const canAll = !bySeries;
-    let view = viewMemo.get(cfg) || (cfg.compare === 'all' ? 'all' : 'selected');
+    // "selected" / "all": part of the saved settings (ctx.state.panelOpts[<panel key>].view), so it survives re-mounts,
+    // reloads and travels in the share link
+    const saved = () => ctx.state.get().panelOpts?.[cfg._key] || {};
+    let view = saved().view || (cfg.compare === 'all' ? 'all' : 'selected');
     const slots = new Map(); // region → colour slot, stable while selected
     const modeEl = h('div', { class: 'seg seg--sm tc-mode', role: 'group', 'aria-label': ctx.t('compare') });
     const keyEl = h('div', { class: 'tc-key' });
@@ -43,9 +45,9 @@ export default {
             'aria-pressed': String(view === id),
             onclick: () => {
               view = id;
-              viewMemo.set(cfg, id);
               renderMode();
               render();
+              if (cfg._key) ctx.state.set({ panelOpts: { ...ctx.state.get().panelOpts, [cfg._key]: { ...saved(), view: id } } });
             },
           }, label),
         );
