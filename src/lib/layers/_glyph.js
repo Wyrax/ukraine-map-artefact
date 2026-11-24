@@ -40,6 +40,16 @@ export function glyphLayer(ctx, kind) {
   };
 }
 
+/**
+ * Vertical frame for column glyphs (bars, stacked): columns stand on a base just below the anchor and grow up,
+ * so taller columns (heightScale > 1) rise above the region instead of sinking into the one below.
+ */
+export function columnFrame(size, cfg, k0) {
+  const hMax = (cfg.maxHeight ?? size * k0) * (cfg.heightScale ?? 1);
+  const baseOff = Math.min(hMax / 2, size * 0.45);
+  return { hMax, baseOff };
+}
+
 /** Reuses (or creates) the n-th child element of a glyph node. */
 export function child(node, i, tag, cls) {
   let el = node.children[i];

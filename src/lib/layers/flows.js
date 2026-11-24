@@ -5,6 +5,29 @@ import { tween } from '../core/anim.js';
 import { catLegend } from '../core/legend.js';
 
 export default {
+  options: (cfg) => [
+    {
+      key: 'curve',
+      type: 'choice',
+      label: { uk: 'Лінії', en: 'Lines' },
+      default: cfg.curve ?? 0.22,
+      choices: [
+        { value: 0.22, label: { uk: 'Дуги', en: 'Arcs' } },
+        { value: 0, label: { uk: 'Прямі', en: 'Straight' } },
+      ],
+    },
+    {
+      key: 'maxWidth',
+      type: 'choice',
+      label: { uk: 'Товщина', en: 'Width' },
+      default: cfg.maxWidth ?? 7,
+      choices: [
+        { value: 4, label: { uk: 'Тонкі', en: 'Thin' } },
+        { value: 7, label: { uk: 'Звичайні', en: 'Normal' } },
+        { value: 12, label: { uk: 'Товсті', en: 'Thick' } },
+      ],
+    },
+  ],
   mount(ctx, cfg) {
     const g = s('g', { class: 'flows' });
     ctx.map.layers.flows.appendChild(g);

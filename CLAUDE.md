@@ -99,7 +99,15 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
   resize; `true`/`false` force them. Name collisions are fixed in `PLACEMENT` (extract-map), checked at 420–1100 px.
 - Selection (click regions, or "Вибрати всі") has no limit unless `options.maxSelected` is set. Up to 8 selected
   regions get series colours in Dynamics and the radar; with more, they become thin ink lines/outlines named on hover.
-- Every layer and panel follows the timeline; domains are global across periods unless `options.domain = "per-period"`.
+- **View options** (block under the view tabs): viewers change the current view's settings live. They are plain
+  layer cfg keys, declared by each layer as `options(cfg, { layout, measure }) → [{ key, type: toggle|choice, label,
+  default, choices }]`: choropleth `values` (numbers on regions; on by default on hex) / `classes` / `breaks`,
+  bubbles and progress-ring `values`, bars `heightScale` (default ×2) and stacked `mode` + `heightScale`, pies `donut` /
+  `size`, radar `normalize`, flows `curve` / `maxWidth`; every glyph view also gets S/M/L size. Not persisted.
+  Columns stand on a base just below the anchor (`columnFrame` in `_glyph.js`); layers can return `labelOffset(id)`
+  and `labelValue` (measure id) to place names and numbers.
+- Every layer and panel follows the timeline (play, to start, back, forward, to end, slider); domains are global
+  across periods unless `options.domain = "per-period"`.
 - A data table (sortable, current period) is always added under the map, and above it a collapsible
   "Налаштування панелей" block with a toggle per side panel (viewer's choice kept in localStorage; hiding all panels
   gives the map the full width). Every side panel is a `<details>`: its title collapses it like the table (collapsed

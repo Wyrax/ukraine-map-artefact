@@ -7,6 +7,8 @@ import { catLegend } from '../core/legend.js';
 import { glyphLayer, child, trim } from './_glyph.js';
 
 export default {
+  // the progress ring (one value) can show its number; radial bars rely on the tooltip
+  options: (cfg) => (cfg.value ? [{ key: 'values', type: 'toggle', label: { uk: 'Цифри', en: 'Values' }, default: cfg.values ?? false }] : []),
   mount(ctx, cfg) {
     const ring = !!cfg.value;
     const ids = ring ? [cfg.value] : cfg.series;
@@ -68,6 +70,7 @@ export default {
     }
     return {
       measures: target ? [...ids, cfg.max] : ids,
+      labelValue: ring && cfg.values ? cfg.value : null,
       glyph: true,
       update(ch) {
         if (ch.has('period')) draw();

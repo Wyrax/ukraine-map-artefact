@@ -1,10 +1,29 @@
 // Choropleth: fills each region by a classed sequential scale.
-// { "type": "choropleth", "value": "<series|measure>", "classes": 5, "breaks": "quantile"|"equal"|[thresholds] }
+// { "type": "choropleth", "value": "<series|measure>", "classes": 5, "breaks": "quantile"|"equal"|[thresholds], "values": false }
+// "values": the number on each region (under its name). All three are also view options the viewer can change.
 import { classBreaks, classify, rampSteps } from '../core/scales.js';
 import { formatTick } from '../core/format.js';
 import { seqLegend } from '../core/legend.js';
 
 export default {
+  options: (cfg, { layout, measure }) => [
+    { key: 'values', type: 'toggle', label: { uk: 'Цифри на областях', en: 'Values on regions' }, default: cfg.values ?? layout === 'hex' },
+    { key: 'classes', type: 'choice', label: { uk: 'Класи', en: 'Classes' }, default: cfg.classes ?? 5, choices: [3, 5, 7].map((v) => ({ value: v, label: String(v) })) },
+    ...(Array.isArray(cfg.breaks)
+      ? []
+      : [
+          {
+            key: 'breaks',
+            type: 'choice',
+            label: { uk: 'Межі класів', en: 'Class breaks' },
+            default: cfg.breaks ?? (measure(cfg.value).format === 'pct' ? 'equal' : 'quantile'),
+            choices: [
+              { value: 'quantile', label: { uk: 'Квантилі', en: 'Quantiles' } },
+              { value: 'equal', label: { uk: 'Рівні', en: 'Equal' } },
+            ],
+          },
+        ]),
+  ],
   mount(ctx, cfg) {
     const id = cfg.value;
     const m = ctx.measure(id);
@@ -47,6 +66,7 @@ export default {
     legend();
     return {
       measures: [id],
+      labelValue: cfg.values ? id : null,
       update(ch) {
         if (!ch.has('period')) return;
         if (ctx.config.options?.domain === 'per-period') compute();

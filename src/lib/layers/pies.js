@@ -8,6 +8,19 @@ import { catLegend } from '../core/legend.js';
 import { glyphLayer, child, trim } from './_glyph.js';
 
 export default {
+  options: (cfg) => [
+    { key: 'donut', type: 'toggle', label: { uk: 'Кільця', en: 'Donuts' }, default: !!cfg.donut },
+    {
+      key: 'size',
+      type: 'choice',
+      label: { uk: 'Розмір кіл', en: 'Circle size' },
+      default: cfg.size ?? 'fixed',
+      choices: [
+        { value: 'fixed', label: { uk: 'Однаковий', en: 'Same' } },
+        { value: 'value', label: { uk: 'За значенням', en: 'By value' } },
+      ],
+    },
+  ],
   mount(ctx, cfg) {
     const ids = cfg.series;
     const ms = ids.map((id) => ctx.measure(id));

@@ -8,6 +8,18 @@ import { radarBasis } from '../panels/radar.js';
 import { glyphLayer, child } from './_glyph.js';
 
 export default {
+  options: (cfg) => [
+    {
+      key: 'normalize',
+      type: 'choice',
+      label: { uk: 'Шкала', en: 'Scale' },
+      default: cfg.normalize ?? 'max',
+      choices: [
+        { value: 'share', label: { uk: 'Частки в області', en: 'Share within region' } },
+        { value: 'max', label: { uk: 'Від максимуму', en: 'Of the maximum' } },
+      ],
+    },
+  ],
   mount(ctx, cfg) {
     const ids = cfg.series;
     const ms = ids.map((id) => ctx.measure(id));

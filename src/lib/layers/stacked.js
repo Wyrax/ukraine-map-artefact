@@ -1,11 +1,31 @@
 // One stacked column per region. mode "abs": height ∝ total (shared scale); "pct": every column is 100%.
-// { "type": "stacked", "series": ["a", "b", "c"], "mode": "abs" | "pct" }
+// { "type": "stacked", "series": ["a", "b", "c"], "mode": "abs" | "pct", "heightScale": 1 }
+// mode and heightScale are also view options ("Значення", "Висота").
 import { attrs } from '../core/dom.js';
 import { barUp } from '../core/shapes.js';
 import { catLegend } from '../core/legend.js';
-import { glyphLayer, child, trim } from './_glyph.js';
+import { glyphLayer, child, trim, columnFrame } from './_glyph.js';
 
 export default {
+  options: (cfg) => [
+    {
+      key: 'mode',
+      type: 'choice',
+      label: { uk: 'Значення', en: 'Values' },
+      default: cfg.mode ?? 'abs',
+      choices: [
+        { value: 'abs', label: { uk: 'Абсолютні', en: 'Absolute' } },
+        { value: 'pct', label: { uk: 'Частки, %', en: 'Shares, %' } },
+      ],
+    },
+    {
+      key: 'heightScale',
+      type: 'choice',
+      label: { uk: 'Висота', en: 'Height' },
+      default: cfg.heightScale ?? 1,
+      choices: [1, 2, 3].map((v) => ({ value: v, label: '×' + v })),
+    },
+  ],
   mount(ctx, cfg) {
     const ids = cfg.series;
     const ms = ids.map((id) => ctx.measure(id));
@@ -19,11 +39,11 @@ export default {
       L.run(
         (r, p) => ms.map((m) => m.get(r, p) ?? 0),
         (node, vals, [x, y], size) => {
-          const hMax = cfg.maxHeight ?? size * 1.0;
+          const { hMax, baseOff } = columnFrame(size, cfg, 1.0);
           const w = cfg.width ?? Math.max(8, size * 0.2);
           const tot = vals.reduce((a, b) => a + b, 0);
           const hTot = pct ? (tot > 0 ? hMax : 0) : maxTotal > 0 ? (tot / maxTotal) * hMax : 0;
-          const base = y + hMax / 2;
+          const base = y + baseOff;
           const gap = 0.8;
           let acc = 0;
           const lastIdx = vals.reduce((li, v, i) => (v > 0 ? i : li), -1);
@@ -43,9 +63,17 @@ export default {
     }
     draw();
     ctx.legend.add(catLegend({ title: ctx.pick(cfg.legendTitle), items: ids.map((id, i) => ({ label: ctx.label(id), color: ctx.color(ms[i].slot ?? i + 1) })) }));
+    const labelOffset = (r) => {
+      const size = ctx.map.glyphSize();
+      const { hMax, baseOff } = columnFrame(size, cfg, 1.0);
+      const tot = ms.reduce((a, m) => a + (m.get(r, ctx.period()) ?? 0), 0);
+      const top = pct ? (tot > 0 ? hMax : 0) : maxTotal > 0 ? (tot / maxTotal) * hMax : 0;
+      return { below: baseOff, above: Math.max(top - baseOff, size * 0.15) };
+    };
     return {
       measures: ids,
       glyph: true,
+      labelOffset,
       update(ch) {
         if (ch.has('period')) draw();
       },

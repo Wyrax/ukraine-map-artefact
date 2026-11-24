@@ -120,8 +120,10 @@ export function createMap(frame, ctx) {
       return layout === 'hex' ? hexCenter[id] : ctx.regions.regions[id].anchor;
     },
     /** Glyph box size (viewBox units) for the current layout. */
+    /** Multiplier for glyph sizes, set per view by the "Розмір" view option. */
+    glyphScale: 1,
     glyphSize() {
-      return layout === 'hex' ? R * 0.86 : ctx.config.options?.glyphSize ?? 58;
+      return (layout === 'hex' ? R * 0.86 : ctx.config.options?.glyphSize ?? 58) * (api.glyphScale || 1);
     },
     regionEls(id) {
       return svg.querySelectorAll(`.region[data-region="${id}"]`);
@@ -131,28 +133,37 @@ export function createMap(frame, ctx) {
       const w = svg.getBoundingClientRect().width;
       return w ? w / W : 1;
     },
-    renderLabels({ show, lang, offset = 0, value }) {
+    /**
+     * show: region names; value(id): optional number shown under the name (or alone when names are off);
+     * offset: glyph half-size, names go below (or above) it; offsetFor(id) → { below, above } overrides it per region.
+     */
+    renderLabels({ show, lang, offset = 0, offsetFor, value }) {
       clear(labelsG);
-      if (!show) return;
+      if (!show && !value) return;
       // keep labels ~11px on screen whatever the rendered map width (hex labels also must fit the tile)
       const px = 10.5 / api.scale();
-      labelsG.setAttribute('font-size', (layout === 'hex' ? Math.min(px, R * 0.25) : Math.max(7.5, Math.min(16, px))).toFixed(2));
+      const fs = layout === 'hex' ? Math.min(px, R * 0.25) : Math.max(7.5, Math.min(16, px));
+      labelsG.setAttribute('font-size', fs.toFixed(2));
       for (const r of REGIONS) {
         const name = r.short[lang] || r.short.uk;
         const [x, y] = api.anchor(r.id);
         if (layout === 'hex') {
           const abbr = r.abbr?.[lang] || name;
           const v = value?.(r.id);
-          labelsG.appendChild(s('text', { x, y: offset ? y - R * 0.56 : v ? y - R * 0.1 : y + R * 0.08, class: 'map-label map-label--hex', 'data-region': r.id }, abbr));
-          if (v) labelsG.appendChild(s('text', { x, y: y + R * 0.38, class: 'map-value', 'data-region': r.id }, v));
+          if (show) labelsG.appendChild(s('text', { x, y: offset ? y - R * 0.56 : v ? y - R * 0.1 : y + R * 0.08, class: 'map-label map-label--hex', 'data-region': r.id }, abbr));
+          if (v) labelsG.appendChild(s('text', { x, y: show ? y + R * 0.38 : y + R * 0.15, class: 'map-value', 'text-anchor': 'middle', 'data-region': r.id }, v));
         } else {
           const city = r.kind === 'city';
           const geo = ctx.regions.regions[r.id];
+          const o = offsetFor?.(r.id) || { below: offset, above: offset };
           let at;
-          if (city) at = offset ? { x, y: y + offset + 7, anchor: 'middle' } : { x: x + geo.r + 3, y: y + 3, anchor: 'start' };
-          else if (offset) at = { x, y: geo.glyphLabel === 'above' ? y - offset - 3 : y + offset + 7, anchor: 'middle' };
+          if (city) at = offset ? { x, y: y + o.below + 7, anchor: 'middle' } : { x: x + geo.r + 3, y: y + 3, anchor: 'start' };
+          else if (offset) at = { x, y: geo.glyphLabel === 'above' ? y - o.above - 3 : y + o.below + 7, anchor: 'middle' };
           else at = { x: geo.label[0], y: geo.label[1], anchor: 'middle' }; // label point from the source map (with fixes from extract-map)
-          labelsG.appendChild(s('text', { x: at.x, y: at.y, class: 'map-label' + (city ? ' map-label--city' : ''), 'text-anchor': at.anchor, 'data-region': r.id }, name));
+          const v = value?.(r.id);
+          if (show) labelsG.appendChild(s('text', { x: at.x, y: at.y, class: 'map-label' + (city ? ' map-label--city' : ''), 'text-anchor': at.anchor, 'data-region': r.id }, name));
+          // the number goes under the name (or takes its place when names are off); city values sit beside the circle
+          if (v) labelsG.appendChild(s('text', { x: at.x, y: show ? at.y + 1.15 * fs : at.y, class: 'map-value map-value--geo', 'text-anchor': at.anchor, 'data-region': r.id }, v));
         }
       }
     },

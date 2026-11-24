@@ -71,6 +71,8 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     occupation: [].concat(opts.occupation ?? (opts.ordlo2020 ? ['2014'] : [])).map((x) => (String(x) === '2015' ? '2014' : String(x))),
     // colour preset: options.palette, or the viewer's last pick when the picker is on
     palette: (config.palettes || []).some((p) => p.id === store.get('ua-palette')) ? store.get('ua-palette') : opts.palette || 'green',
+    // view options chosen in the block under the view tabs: { "<mode>/<layer index>/<key>": value }
+    viewOpts: {},
     // side panels switched off in "Налаштування панелей" (viewer's choice, else panels[].hidden in the config)
     hiddenPanels: storedHiddenPanels() ?? (config.panels || []).flatMap((pc, i) => (pc.hidden ? [panelKey(pc, i)] : [])),
     playing: false,
@@ -285,15 +287,68 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     activeMode = modes.find((m) => m.id === state.get().mode) || modes[0];
     map.setLayout(activeMode.layout || 'geo');
     root.classList.toggle('is-hex', map.layout === 'hex');
-    for (const lc of activeMode.layers || []) {
+    map.glyphScale = optValue('*', 'glyphScale', 1);
+    for (const [li, lc] of (activeMode.layers || []).entries()) {
       const type = layerTypes[lc.type];
       if (!type) {
         console.warn(`[ua-map] Layer type "${lc.type}" is not bundled`);
         continue;
       }
-      active.push({ ...type.mount(ctx, lc), config: lc });
+      // the layer's config with the viewer's view options applied on top
+      const cfg = { ...lc };
+      for (const o of layerOptions(lc)) cfg[o.key] = optValue(li, o.key, o.default);
+      active.push({ ...type.mount(ctx, cfg), config: lc });
     }
     renderLabels();
+    renderViewOpts();
+  }
+
+  // ---------- view options: per-view settings under the view tabs ----------
+  const optKey = (li, key) => `${activeMode.id}/${li}/${key}`;
+  function optValue(li, key, dflt) {
+    const v = state.get().viewOpts[optKey(li, key)];
+    return v === undefined ? dflt : v;
+  }
+  const layerOptions = (lc) => layerTypes[lc.type]?.options?.(lc, { layout: map.layout, measure: ctx.measure }) || [];
+  const GLYPH_SIZES = [0.8, 1, 1.25];
+  function renderViewOpts() {
+    const el = slot('viewopts');
+    if (!el) return;
+    clear(el);
+    const groups = [];
+    const setOpt = (li, key, v) => state.set({ viewOpts: { ...state.get().viewOpts, [optKey(li, key)]: v } });
+    const group = (label, control) => h('div', { class: 'vo' }, h('span', { class: 'vo__k' }, label), control);
+    let valuesShown = false; // only one layer can put numbers on the regions: offer one "values" switch per view
+    (activeMode.layers || []).forEach((lc, li) => {
+      for (const o of layerOptions(lc)) {
+        if (o.key === 'values') {
+          if (valuesShown) continue;
+          valuesShown = true;
+        }
+        const cur = optValue(li, o.key, o.default);
+        if (o.type === 'toggle') {
+          groups.push(chip(ctx.pick(o.label), !!cur, () => setOpt(li, o.key, !cur)));
+        } else {
+          const seg = h('div', { class: 'seg seg--sm', role: 'group', 'aria-label': ctx.pick(o.label) });
+          for (const c of o.choices) {
+            seg.appendChild(h('button', { type: 'button', class: 'seg__btn', 'aria-pressed': String(c.value === cur), onclick: () => setOpt(li, o.key, c.value) }, ctx.pick(c.label)));
+          }
+          groups.push(group(ctx.pick(o.label), seg));
+        }
+      }
+    });
+    // every view with glyphs on the regions can make them smaller or larger
+    if (active.some((l) => l.glyph)) {
+      const cur = optValue('*', 'glyphScale', 1);
+      const seg = h('div', { class: 'seg seg--sm', role: 'group', 'aria-label': ctx.t('glyphSize') });
+      ['S', 'M', 'L'].forEach((txt, i) => {
+        seg.appendChild(h('button', { type: 'button', class: 'seg__btn', 'aria-pressed': String(GLYPH_SIZES[i] === cur), onclick: () => setOpt('*', 'glyphScale', GLYPH_SIZES[i]) }, txt));
+      });
+      groups.push(group(ctx.t('glyphSize'), seg));
+    }
+    el.hidden = !groups.length;
+    el.setAttribute('aria-label', ctx.t('viewOptions'));
+    for (const g of groups) el.appendChild(g);
   }
   const activeMeasureIds = () => [...new Set(active.flatMap((l) => l.measures || []))];
   const primaryMeasure = () => activeMeasureIds()[0] || data.series[0].id;
@@ -307,12 +362,15 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
   function renderLabels() {
     const st = state.get();
     const hasGlyph = active.some((l) => l.glyph);
-    const pm = primaryMeasure();
+    // numbers on the regions come from the layer that asks for them ("Цифри на областях", "Цифри")
+    const vid = active.find((l) => l.labelValue)?.labelValue;
+    const withOffset = active.find((l) => l.labelOffset);
     map.renderLabels({
       show: labelsOn(),
       lang: st.lang,
       offset: hasGlyph ? map.glyphSize() / 2 : 0,
-      value: map.layout === 'hex' && !hasGlyph ? (id) => ctx.fmt(ctx.measure(pm).get(id, st.period), pm) : null,
+      offsetFor: withOffset ? (id) => withOffset.labelOffset(id) : null,
+      value: vid ? (id) => (ctx.measure(vid).get(id, st.period) == null ? '' : ctx.fmt(ctx.measure(vid).get(id, st.period), vid)) : null,
     });
   }
 
@@ -558,6 +616,11 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
       renderChrome();
       for (const p of panels) p.update?.(ch);
       renderTable();
+      updateAria();
+      applyHighlight();
+    }
+    if (ch.has('viewOpts') && !ch.has('mode')) {
+      mountMode(); // redraws the current view with the chosen options (and the options block itself)
       updateAria();
       applyHighlight();
     }

@@ -408,6 +408,30 @@ body {
   align-items: center;
   gap: 8px 12px;
 }
+/* view options: a row of its own right under the view tabs */
+.ua-viewopts {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  font-size: 0.8125rem;
+}
+.ua-viewopts[hidden] {
+  display: none;
+}
+.vo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.vo__k {
+  color: var(--muted);
+  white-space: nowrap;
+}
 .ua-mapframe {
   min-width: 0;
 }
@@ -513,12 +537,15 @@ body {
   fill: var(--ink);
   font-size: 1.02em;
 }
+/* numbers under region names on the geographic map ("Цифри на областях") */
+.ua-map .map-value.map-value--geo {
+  font-size: 1em;
+}
 .ua-map .map-value {
   font-family: var(--font-ui);
   font-weight: 600;
   font-size: 1.4em;
   fill: var(--ink);
-  text-anchor: middle;
   paint-order: stroke;
   stroke: var(--surface);
   stroke-width: 0.22em;
@@ -755,6 +782,13 @@ body {
 .tl-step:disabled {
   opacity: 0.4;
   cursor: default;
+}
+.tl-step svg {
+  display: block;
+  width: 13px;
+  height: 13px;
+  margin: auto;
+  fill: currentColor;
 }
 .tl-track {
   flex: 1;

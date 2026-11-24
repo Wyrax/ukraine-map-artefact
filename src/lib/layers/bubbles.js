@@ -7,6 +7,7 @@ import { sizeLegend } from '../core/legend.js';
 import { glyphLayer, child } from './_glyph.js';
 
 export default {
+  options: (cfg) => [{ key: 'values', type: 'toggle', label: { uk: 'Цифри', en: 'Values' }, default: cfg.values ?? false }],
   mount(ctx, cfg) {
     const id = cfg.value;
     const m = ctx.measure(id);
@@ -39,6 +40,7 @@ export default {
     legend();
     return {
       measures: [id],
+      labelValue: cfg.values ? id : null,
       glyph: true,
       update(ch) {
         if (ch.has('period')) draw();
