@@ -1,0 +1,9 @@
+# Source Illustrator map (large, kept local)
+maps/
+
+# Node
+node_modules/
+
+# Build output and scratch files
+dist/
+.tmp/

@@ -1,0 +1,19 @@
+{
+  "name": "ukraine-map-artefact",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Base for HTML infographics with Ukraine's SVG map, published as Claude Artifacts",
+  "type": "module",
+  "scripts": {
+    "extract-map": "node tools/extract-map.mjs maps/_UKRAINE_2020.ai",
+    "build": "node tools/build.mjs",
+    "dev": "node tools/build.mjs --watch",
+    "csv": "node tools/csv-to-data.mjs",
+    "test": "node --test \"tests/*.test.js\"",
+    "occupation": "node tools/occupation.mjs --fetch",
+    "palettes": "node tools/make-palettes.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.5"
+  }
+}

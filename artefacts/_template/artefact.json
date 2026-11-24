@@ -1,0 +1,92 @@
+{
+  "title": {
+    "uk": "Назва мапи",
+    "en": "Map title"
+  },
+  "description": {
+    "uk": "Одне речення для картки в галереї.",
+    "en": "One sentence for the gallery card."
+  },
+  "eyebrow": {
+    "uk": "Kitsoft",
+    "en": "Kitsoft"
+  },
+  "subtitle": {
+    "uk": "Що показує мапа і за який період.",
+    "en": "What the map shows and for which period."
+  },
+  "measures": [
+    {
+      "id": "share_a",
+      "label": {
+        "uk": "Частка A",
+        "en": "Share of A"
+      },
+      "expr": "a / total",
+      "format": "pct"
+    }
+  ],
+  "modes": [
+    {
+      "id": "map",
+      "label": {
+        "uk": "Мапа",
+        "en": "Map"
+      },
+      "layers": [
+        {
+          "type": "choropleth",
+          "value": "total"
+        }
+      ]
+    },
+    {
+      "id": "mix",
+      "label": {
+        "uk": "Структура",
+        "en": "Mix"
+      },
+      "layers": [
+        {
+          "type": "pies",
+          "series": [
+            "a",
+            "b"
+          ],
+          "donut": true
+        }
+      ]
+    },
+    {
+      "id": "hex",
+      "label": {
+        "uk": "Соти",
+        "en": "Hex map"
+      },
+      "layout": "hex",
+      "layers": [
+        {
+          "type": "choropleth",
+          "value": "share_a"
+        }
+      ]
+    }
+  ],
+  "panels": [
+    {
+      "type": "ranking",
+      "value": "total"
+    },
+    {
+      "type": "timeline-chart",
+      "value": "share_a"
+    }
+  ],
+  "notes": [],
+  "options": {
+    "lang": "uk",
+    "domain": "global",
+    "occupation": []
+  },
+  "publishedUrl": null
+}

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "showcase",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tools/build.mjs", "showcase", "--watch", "--serve", "--port", "5173"],
+      "port": 5173
+    }
+  ]
+}

@@ -1,0 +1,291 @@
+{
+  "title": {
+    "uk": "Мапа-конструктор України",
+    "en": "Ukraine Map Kit"
+  },
+  "description": {
+    "uk": "Галерея всіх типів візуалізацій базового шаблону мапи України на синтетичних даних.",
+    "en": "Gallery of every visualization in the Ukraine map base, on synthetic data."
+  },
+  "eyebrow": {
+    "uk": "Демо-дані · усі типи візуалізацій",
+    "en": "Demo data · every visualization type"
+  },
+  "subtitle": {
+    "uk": "Вигадані користувачі чотирьох середовищ за регіонами, щомісяця з січня 2025. Перемикайте подання над мапою та запускайте шкалу часу.",
+    "en": "Invented users of four environments by region, monthly since January 2025. Switch views above the map and play the timeline."
+  },
+  "measures": [
+    {
+      "id": "share_prod",
+      "label": {
+        "uk": "Частка продакшну",
+        "en": "Production share"
+      },
+      "expr": "prod / total",
+      "format": "pct"
+    }
+  ],
+  "modes": [
+    {
+      "id": "choropleth",
+      "label": {
+        "uk": "Хороплет",
+        "en": "Choropleth"
+      },
+      "layers": [
+        {
+          "type": "choropleth",
+          "value": "total"
+        }
+      ]
+    },
+    {
+      "id": "bubbles",
+      "label": {
+        "uk": "Бульбашки",
+        "en": "Bubbles"
+      },
+      "layers": [
+        {
+          "type": "bubbles",
+          "value": "total"
+        }
+      ]
+    },
+    {
+      "id": "bars",
+      "label": {
+        "uk": "Стовпчики",
+        "en": "Bars"
+      },
+      "layers": [
+        {
+          "type": "bars",
+          "series": [
+            "dev",
+            "test",
+            "stage",
+            "prod"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stacked",
+      "label": {
+        "uk": "Стек",
+        "en": "Stacked"
+      },
+      "layers": [
+        {
+          "type": "stacked",
+          "series": [
+            "dev",
+            "test",
+            "stage",
+            "prod"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pies",
+      "label": {
+        "uk": "Кільцеві",
+        "en": "Donuts"
+      },
+      "layers": [
+        {
+          "type": "pies",
+          "series": [
+            "dev",
+            "test",
+            "stage",
+            "prod"
+          ],
+          "donut": true,
+          "size": "value"
+        }
+      ]
+    },
+    {
+      "id": "progress",
+      "label": {
+        "uk": "Прогрес",
+        "en": "Progress"
+      },
+      "layers": [
+        {
+          "type": "choropleth",
+          "value": "share_prod",
+          "classes": 5
+        },
+        {
+          "type": "radial",
+          "value": "share_prod",
+          "max": 1
+        }
+      ]
+    },
+    {
+      "id": "radial",
+      "label": {
+        "uk": "Радіальні",
+        "en": "Radial bars"
+      },
+      "layers": [
+        {
+          "type": "radial",
+          "series": [
+            "dev",
+            "test",
+            "stage",
+            "prod"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "radar",
+      "label": {
+        "uk": "Радар",
+        "en": "Radar"
+      },
+      "layers": [
+        {
+          "type": "radar",
+          "series": [
+            "dev",
+            "test",
+            "stage",
+            "prod"
+          ],
+          "normalize": "share"
+        }
+      ]
+    },
+    {
+      "id": "hex",
+      "label": {
+        "uk": "Соти",
+        "en": "Hex map"
+      },
+      "layout": "hex",
+      "layers": [
+        {
+          "type": "choropleth",
+          "value": "total"
+        }
+      ]
+    },
+    {
+      "id": "hex-pies",
+      "label": {
+        "uk": "Соти + кільця",
+        "en": "Hex + donuts"
+      },
+      "layout": "hex",
+      "layers": [
+        {
+          "type": "pies",
+          "series": [
+            "dev",
+            "test",
+            "stage",
+            "prod"
+          ],
+          "donut": true
+        }
+      ]
+    },
+    {
+      "id": "flows",
+      "label": {
+        "uk": "Потоки",
+        "en": "Flows"
+      },
+      "layers": [
+        {
+          "type": "flows",
+          "slot": 2
+        }
+      ]
+    }
+  ],
+  "panels": [
+    {
+      "type": "ranking",
+      "series": [
+        "dev",
+        "test",
+        "stage",
+        "prod"
+      ],
+      "title": {
+        "uk": "Рейтинг регіонів",
+        "en": "Region ranking"
+      }
+    },
+    {
+      "type": "timeline-chart",
+      "value": "total",
+      "title": {
+        "uk": "Динаміка",
+        "en": "Trend"
+      }
+    },
+    {
+      "type": "sankey",
+      "flows": "series",
+      "series": [
+        "dev",
+        "test",
+        "stage",
+        "prod"
+      ],
+      "limit": 7,
+      "title": {
+        "uk": "Регіони → середовища",
+        "en": "Regions → environments"
+      }
+    },
+    {
+      "type": "radar",
+      "series": [
+        "dev",
+        "test",
+        "stage",
+        "prod"
+      ],
+      "normalize": "share"
+    },
+    {
+      "type": "heatmap",
+      "value": "total",
+      "title": {
+        "uk": "Регіони × місяці",
+        "en": "Regions × months"
+      }
+    }
+  ],
+  "notes": [
+    {
+      "uk": "Усі числа вигадані й слугують лише для демонстрації шаблону.",
+      "en": "All numbers are invented and only demonstrate the template."
+    },
+    {
+      "uk": "Київ і Севастополь позначено кругами всередині областей.",
+      "en": "Kyiv and Sevastopol are drawn as circles inside their oblasts."
+    }
+  ],
+  "options": {
+    "lang": "uk",
+    "domain": "global",
+    "interval": 900,
+    "palette": "green",
+    "palettePicker": true,
+    "occupation": []
+  },
+  "publishedUrl": "https://claude.ai/artifact/UknzLB3TBiwoTps6HGbXE6"
+}

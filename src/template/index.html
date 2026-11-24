@@ -1,0 +1,51 @@
+<meta charset="utf-8">
+<title>{{TITLE}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="{{DESCRIPTION}}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Onest:wght@500;600;700&display=swap">
+<style>
+{{CSS}}
+</style>
+
+<div class="ua" id="ua-app" lang="{{LANG}}">
+  <header class="ua-head">
+    <div class="ua-titles">
+      <p class="ua-eyebrow" data-slot="eyebrow" hidden></p>
+      <h1 data-slot="title">{{TITLE}}</h1>
+      <p class="ua-sub" data-slot="subtitle" hidden></p>
+      <div class="ua-meta" data-slot="meta"></div>
+    </div>
+    <div class="ua-headtools">
+      <details class="pal" data-slot="palette" hidden></details>
+      <div class="seg" data-slot="lang" role="group"></div>
+    </div>
+  </header>
+
+  <main class="ua-main">
+    <section class="ua-card ua-mapcard" aria-label="Map">
+      <div class="ua-maptop">
+        <div class="seg" data-slot="modes" role="group" hidden></div>
+        <div class="chips" data-slot="maptools" role="group"></div>
+      </div>
+      <div class="ua-mapframe" data-slot="map">
+{{SVG}}
+      </div>
+      <div class="ua-legend" data-slot="legend"></div>
+      <div class="ua-timeline" data-slot="timeline"></div>
+    </section>
+    <aside class="ua-side" data-slot="panels"></aside>
+  </main>
+
+  <details class="ua-card ua-panelcfg" data-slot="panelcfg" hidden></details>
+  <details class="ua-card ua-tablewrap" data-slot="table"></details>
+  <footer class="ua-foot" data-slot="footer"></footer>
+</div>
+
+<script type="application/json" id="ua-config">{{CONFIG}}</script>
+<script type="application/json" id="ua-data">{{DATA}}</script>
+<script type="application/json" id="ua-regions">{{REGIONS}}</script>
+<script>
+{{JS}}
+</script>
