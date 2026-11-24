@@ -59,6 +59,8 @@ const KNOWN_ISLANDS = [
 //   labelShift    — [dx, dy] (viewBox units) added to the source map's label point
 //   labelAtGlyph  — 'above' | 'below': without a glyph, put the name where it sits on glyph maps
 //   glyphLabel    — 'above' puts the name above the glyph instead of below it
+//   anchor        — [x, y] (viewBox units) for the glyph instead of the pole of inaccessibility (must be inside)
+//   glyphLabelDy  — extra distance (viewBox units) between the glyph and the name on glyph maps
 const PLACEMENT = {
   // Kyiv Oblast wraps around the Kyiv circle: keep its glyph clear of the city's glyph and name,
   // and put its own name far south, away from the circle and from a chart drawn on Kyiv.
@@ -73,6 +75,10 @@ const PLACEMENT = {
   'UA-26': { labelShift: [4, -18] },
   // keeps "Вінницька" clear of "Хмельницька" on narrow maps
   'UA-05': { labelShift: [0, 10] },
+  // the Chernivtsi glyph sat under the end of "Івано-Франківська" (written below IF's glyph): move it east,
+  // as far as the narrowing oblast allows while staying clear of the Khmelnytskyi and Vinnytsia glyphs
+  // and its name a little lower, clear of that IF name on narrow maps
+  'UA-77': { anchor: [270, 319], glyphLabelDy: 8 },
 };
 const GLYPH_HALF = 29; // half of the default glyph box (options.glyphSize 58); map.js puts names 3 above / 7 below it
 
@@ -320,6 +326,11 @@ for (const reg of REGIONS) {
     .filter(([, p]) => p === reg.id)
     .map(([cid]) => ({ c: circles[cid].c, r: circles[cid].r + (fix.cityClearance ?? 3) }));
   const pl = polylabel(main, 0.2, obstacles);
+  if (fix.anchor) {
+    if (!main.some((poly) => pointInPolygon(fix.anchor, poly))) throw new Error(`${reg.id}: anchor ${fix.anchor} is outside the region`);
+    pl.pt = fix.anchor;
+    pl.r = signedDist(fix.anchor, main);
+  }
   let label = T(rs.label);
   if (fix.label) label = T(geoToPage(fix.label));
   if (fix.labelShift) label = [label[0] + fix.labelShift[0], label[1] + fix.labelShift[1]];
@@ -332,6 +343,7 @@ for (const reg of REGIONS) {
     r: r1(pl.r),
     label: label.map(r1),
     ...(fix.glyphLabel ? { glyphLabel: fix.glyphLabel } : {}),
+    ...(fix.glyphLabelDy ? { glyphLabelDy: fix.glyphLabelDy } : {}),
     capital: capitals[reg.id] ? T(capitals[reg.id]).map(r1) : null,
     bbox: bbox([...main, ...TP(rs.extra.flatMap((e) => e.polys))].flat()).map(r1),
   };

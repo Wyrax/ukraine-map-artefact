@@ -7,7 +7,7 @@ import { catLegend } from '../core/legend.js';
 import { glyphLayer, child, trim } from './_glyph.js';
 
 export default {
-  // the progress ring (one value) can show its number; radial bars rely on the tooltip
+  // the progress ring (one value) shows its number inside the ring; radial bars rely on the tooltip
   options: (cfg) => (cfg.value ? [{ key: 'values', type: 'toggle', label: { uk: 'Цифри', en: 'Values' }, default: cfg.values ?? false }] : []),
   mount(ctx, cfg) {
     const ring = !!cfg.value;
@@ -43,8 +43,10 @@ export default {
             attrs(arc, { d: arcStroke(x, y, R, 0, fr[0] * sweep), 'stroke-width': w });
             arc.style.stroke = ctx.color(cfg.slot ?? ms[0].slot ?? 1);
             const label = child(node, 3, 'text', 'ring-label');
-            const show = ctx.map.layout === 'hex' && has;
-            attrs(label, { x, y: y + 3.5 });
+            const show = has && (ctx.map.layout === 'hex' || !!cfg.values);
+            const fs = Math.max(7, Math.min(11, R * 0.46)); // fits inside the ring at every glyph size
+            label.style.fontSize = `${fs.toFixed(1)}px`;
+            attrs(label, { x, y: y + fs * 0.36 });
             label.textContent = show ? ctx.fmt(ms[0].get(r, ctx.period()), ids[0]) : '';
             trim(node, 4);
           } else {
@@ -71,6 +73,7 @@ export default {
     return {
       measures: target ? [...ids, cfg.max] : ids,
       labelValue: ring && cfg.values ? cfg.value : null,
+      valuesInside: ring && !!cfg.values,
       glyph: true,
       update(ch) {
         if (ch.has('period')) draw();

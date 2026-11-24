@@ -288,6 +288,16 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     map.setLayout(activeMode.layout || 'geo');
     root.classList.toggle('is-hex', map.layout === 'hex');
     map.glyphScale = optValue('*', 'glyphScale', 1);
+    // one "values" switch per view (the first layer that offers it); every layer that can show numbers follows it,
+    // so e.g. the progress rings put the numbers inside themselves
+    let modeValues;
+    for (const [li, lc] of (activeMode.layers || []).entries()) {
+      const o = layerOptions(lc).find((x) => x.key === 'values');
+      if (o) {
+        modeValues = optValue(li, 'values', o.default);
+        break;
+      }
+    }
     for (const [li, lc] of (activeMode.layers || []).entries()) {
       const type = layerTypes[lc.type];
       if (!type) {
@@ -296,7 +306,7 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
       }
       // the layer's config with the viewer's view options applied on top
       const cfg = { ...lc };
-      for (const o of layerOptions(lc)) cfg[o.key] = optValue(li, o.key, o.default);
+      for (const o of layerOptions(lc)) cfg[o.key] = o.key === 'values' && modeValues !== undefined ? modeValues : optValue(li, o.key, o.default);
       active.push({ ...type.mount(ctx, cfg), config: lc });
     }
     renderLabels();
@@ -363,7 +373,8 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     const st = state.get();
     const hasGlyph = active.some((l) => l.glyph);
     // numbers on the regions come from the layer that asks for them ("Цифри на областях", "Цифри")
-    const vid = active.find((l) => l.labelValue)?.labelValue;
+    // …unless a glyph layer draws them itself (progress rings: inside the ring)
+    const vid = active.some((l) => l.valuesInside) ? null : active.find((l) => l.labelValue)?.labelValue;
     const withOffset = active.find((l) => l.labelOffset);
     map.renderLabels({
       show: labelsOn(),
