@@ -9,7 +9,8 @@ import { prepareData, buildMeasures, domainOf, valuesOf } from './core/data.js';
 import { createMap } from './core/map.js';
 import { createTooltip } from './core/tooltip.js';
 import { createTimeline } from './core/timeline.js';
-import { encodeSnapshot, decodeSnapshot } from './core/snapshot.js';
+import { encodeSnapshot, decodeSnapshot, isSnapshotCode, textDiff, textApply } from './core/snapshot.js';
+import { mountTextEditor, TEXT_FIELDS } from './core/editor.js';
 import { BY_ID, REGIONS } from '../map/catalog.js';
 
 const readJSON = (id) => JSON.parse(document.getElementById(id).textContent);
@@ -49,7 +50,13 @@ function storedList(k) {
   }
 }
 
-export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) {
+export function boot(types = {}) {
+  // a share link carries the settings in the hash: decode it (compressed, so asynchronously) before the first render
+  if (isSnapshotCode(location.hash)) decodeSnapshot(location.hash).then((snap) => start(types, snap), () => start(types, null));
+  else start(types, null);
+}
+
+function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSnap) {
   const root = document.getElementById('ua-app');
   const config = readJSON('ua-config');
   const raw = readJSON('ua-data');
@@ -60,7 +67,7 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
   const opts = config.options || {};
   const modes = config.modes?.length ? config.modes : [{ id: 'default', layers: [{ type: 'choropleth', value: data.series[0].id }] }];
 
-  // ---------- settings: defaults ← saved in this browser ← the share link (#ua-…) ----------
+  // ---------- settings: defaults ← saved in this browser ← the share link (#ub-…) ----------
   const defaults = {
     period: opts.startPeriod === 'first' ? 0 : data.periods.length - 1,
     mode: modes[0].id,
@@ -81,7 +88,12 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     panelCfgOpen: false,
     tableOpen: false,
     panelOpts: {},
+    // the viewer's own versions of the page texts ("✎ Редагувати тексти"): { title: {uk?, en?}, …, updated }
+    texts: {},
   };
+  // the page's own texts, which the viewer's edits replace (and which link diffs are taken against)
+  const baseText = (key) => (key === 'source' || key === 'updated' ? raw.meta?.[key] : config[key]);
+  const TEXT_KEYS = { eyebrow: 'e', title: 't', subtitle: 's', source: 'r' };
   // short keys keep the link short; the period travels as its id so it survives months being added later
   const SNAP = { m: 'mode', p: 'period', l: 'lang', s: 'selected', n: 'labels', o: 'occupation', c: 'palette', v: 'viewOpts', h: 'hiddenPanels', k: 'collapsedPanels', g: 'panelCfgOpen', t: 'tableOpen', q: 'panelOpts' };
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -95,6 +107,19 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
       const d = key === 'period' ? data.periods[defaults.period] : defaults[key];
       if (!same(v, d)) out[k] = v;
     }
+    // edited texts: only the changed part of each, against the page's own text
+    const x = {};
+    for (const [key, k] of Object.entries(TEXT_KEYS)) {
+      const t = st.texts?.[key];
+      if (!t) continue;
+      const own = baseText(key);
+      const pickOwn = (l) => (own && typeof own === 'object' ? own[l] ?? '' : own ?? '');
+      const per = {};
+      for (const l of ['uk', 'en']) if (t[l] != null) per[l] = textDiff(pickOwn(l), t[l]);
+      if (Object.keys(per).length) x[k] = per;
+    }
+    if (st.texts?.updated) x.u = st.texts.updated;
+    if (Object.keys(x).length) out.x = x;
     return out;
   }
   /** Snapshot → state fields, dropping anything this page does not have (unknown views, months, regions…). */
@@ -114,6 +139,23 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     if (typeof o.g === 'boolean') st.panelCfgOpen = o.g;
     if (typeof o.t === 'boolean') st.tableOpen = o.t;
     if (o.q && typeof o.q === 'object' && !Array.isArray(o.q) && Object.values(o.q).every(isFlat)) st.panelOpts = o.q;
+    if (o.x && typeof o.x === 'object') {
+      const texts = {};
+      for (const [key, k] of Object.entries(TEXT_KEYS)) {
+        const per = o.x[k];
+        if (!per || typeof per !== 'object') continue;
+        const own = baseText(key);
+        const pickOwn = (l) => (own && typeof own === 'object' ? own[l] ?? '' : own ?? '');
+        const t = {};
+        for (const l of ['uk', 'en']) {
+          const v = per[l] == null ? null : textApply(pickOwn(l), per[l]); // null: the page's text changed since
+          if (v != null) t[l] = String(v).slice(0, 600);
+        }
+        if (Object.keys(t).length) texts[key] = t;
+      }
+      if (typeof o.x.u === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.x.u)) texts.updated = o.x.u;
+      st.texts = texts;
+    }
     return st;
   }
   function storedSettings() {
@@ -135,7 +177,7 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
   const state = createState({
     ...defaults,
     ...storedSettings(),
-    ...fromSnap(decodeSnapshot(location.hash)),
+    ...fromSnap(linkSnap),
     hover: null,
     playing: false,
   });
@@ -225,15 +267,23 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
       el.textContent = v || '';
       el.hidden = !v;
     };
-    set('eyebrow', ctx.pick(config.eyebrow));
-    set('title', ctx.pick(config.title) || ctx.pick(data.meta.title));
-    set('subtitle', ctx.pick(config.subtitle) || ctx.pick(data.meta.subtitle));
+    // the viewer's edited texts ("✎ Редагувати тексти") over the page's own
+    const text = (key) => {
+      const own = baseText(key);
+      const t = st.texts?.[key];
+      return t ? ctx.pick({ ...(own && typeof own === 'object' ? own : { uk: own ?? '', en: own ?? '' }), ...t }) : ctx.pick(own);
+    };
+    set('eyebrow', text('eyebrow'));
+    set('title', text('title') || ctx.pick(data.meta.title));
+    set('subtitle', text('subtitle') || ctx.pick(data.meta.subtitle));
+    document.title = text('title') || document.title;
 
     const meta = slot('meta');
     clear(meta);
-    const src = ctx.pick(data.meta.source);
+    const src = text('source');
     if (src) meta.appendChild(h('span', {}, h('span', { class: 'ua-meta__k' }, ctx.t('source') + ': '), src));
-    if (data.meta.updated) meta.appendChild(h('span', {}, h('span', { class: 'ua-meta__k' }, ctx.t('updated') + ' '), formatDate(data.meta.updated, st.lang)));
+    const updated = st.texts?.updated || data.meta.updated;
+    if (updated) meta.appendChild(h('span', {}, h('span', { class: 'ua-meta__k' }, ctx.t('updated') + ' '), formatDate(updated, st.lang)));
 
     const langEl = slot('lang');
     clear(langEl);
@@ -738,29 +788,36 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     if (ch.has('collapsedPanels')) for (const p of panels) if (p.sec.open === st.collapsedPanels.includes(p.key)) p.sec.open = !p.sec.open;
     if (ch.has('panelCfgOpen') && slot('panelcfg').open !== st.panelCfgOpen) slot('panelcfg').open = st.panelCfgOpen;
     if (ch.has('tableOpen') && tableEl.open !== st.tableOpen) tableEl.open = st.tableOpen;
-    if (Object.values(SNAP).some((k) => ch.has(k))) saveSoon();
+    if (ch.has('texts') || Object.values(SNAP).some((k) => ch.has(k))) saveSoon();
   });
 
   // ---------- saving the settings and the share link ----------
   slot('panelcfg').addEventListener('toggle', () => state.set({ panelCfgOpen: slot('panelcfg').open }));
   tableEl.addEventListener('toggle', () => state.set({ tableOpen: tableEl.open }));
-  const shareUrl = () => {
-    const base = String(config.publishedUrl || location.href).split('#')[0];
+  // the link is encoded (and compressed) asynchronously; the field and the copy button use the latest one
+  const linkBase = String(config.publishedUrl || location.href).split('#')[0];
+  let latestLink = linkBase;
+  let linkJob = 0;
+  async function refreshLink() {
+    const job = ++linkJob;
     const snap = toSnap(state.get());
-    return Object.keys(snap).length ? `${base}#${encodeSnapshot(snap)}` : base;
-  };
+    const url = Object.keys(snap).length ? `${linkBase}#${await encodeSnapshot(snap)}` : linkBase;
+    if (job !== linkJob) return; // a newer change is being encoded
+    latestLink = url;
+    const input = slot('share')?.querySelector('input');
+    if (input) input.value = url;
+  }
   let saveTimer = 0;
   function saveSoon() {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       store.set('ua-state', JSON.stringify(toSnap(state.get())));
-      const input = slot('share')?.querySelector('input');
-      if (input) input.value = shareUrl();
+      refreshLink();
     }, 300);
   }
   function resetSettings() {
     for (const k of ['ua-state', 'ua-lang', 'ua-palette', 'ua-panels', 'ua-panels-collapsed']) store.set(k, '');
-    if (decodeSnapshot(location.hash)) location.hash = '';
+    if (isSnapshotCode(location.hash)) location.hash = '';
     timeline.stop();
     state.set({ ...defaults, hover: null });
   }
@@ -768,7 +825,7 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     const el = slot('share');
     if (!el) return;
     clear(el);
-    const input = h('input', { type: 'text', class: 'ua-share__url', readonly: true, value: shareUrl(), 'aria-label': ctx.t('shareTitle'), onfocus: (e) => e.target.select() });
+    const input = h('input', { type: 'text', class: 'ua-share__url', readonly: true, value: latestLink, 'aria-label': ctx.t('shareTitle'), onfocus: (e) => e.target.select() });
     const copyBtn = h('button', { type: 'button', class: 'ua-btn' }, ctx.t('copyLink'));
     const status = h('span', { class: 'ua-share__status', role: 'status' });
     const say = (text, ok) => {
@@ -781,7 +838,7 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
       }, 4000);
     };
     copyBtn.addEventListener('click', () => {
-      input.value = shareUrl();
+      input.value = latestLink;
       const fallback = () => {
         input.focus();
         input.select();
@@ -801,9 +858,11 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
     );
   }
   renderShare();
+  refreshLink();
   // a share link opened in a tab that already shows the page
-  window.addEventListener('hashchange', () => {
-    const st = fromSnap(decodeSnapshot(location.hash));
+  window.addEventListener('hashchange', async () => {
+    if (!isSnapshotCode(location.hash)) return;
+    const st = fromSnap(await decodeSnapshot(location.hash));
     if (Object.keys(st).length) state.set(st);
   });
 
@@ -823,6 +882,13 @@ export function boot({ layers: layerTypes = {}, panels: panelTypes = {} } = {}) 
       renderChrome();
     }
   }).observe(slot('map'));
+
+  // ---------- the viewer's own page texts (part of the settings and the link; the artifact never changes) ----------
+  const textEditor = mountTextEditor(ctx, slot('edittexts'), slot('editor'), baseText);
+  state.on((st, ch) => {
+    if (ch.has('texts') && !ch.has('lang')) renderChrome();
+    if (ch.has('lang')) textEditor.relabel();
+  });
 
   window.uaMap = ctx; // handy for debugging in the console
   return ctx;

@@ -109,11 +109,17 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
   Columns stand on a base just below the anchor (`columnFrame` in `_glyph.js`); layers can return `labelOffset(id)`
   and `labelValue` (measure id) to place names and numbers.
 - **Saved settings and share link**: the view, its options, the month, language, palette, names, occupation layers,
-  selected regions, hidden/collapsed panels, the two bottom blocks and the Dynamics "all regions" choice form one
-  snapshot (`toSnap`/`fromSnap` in app.js, only values that differ from the defaults). Restore order: defaults ←
-  `localStorage["ua-state"]` (saved as things change) ← `#ua-<base62>` in the URL (`src/lib/core/snapshot.js`; the
-  Artifact host passes only letters/digits/hyphens). The block under the timeline copies `publishedUrl#ua-…` and has
-  "Скинути налаштування". No server storage: the link works for signed-out visitors too.
+  selected regions, hidden/collapsed panels, the two bottom blocks, the Dynamics "all regions" choice and edited texts
+  form one snapshot (`toSnap`/`fromSnap` in app.js, only values that differ from the defaults). Restore order:
+  defaults ← `localStorage["ua-state"]` (saved as things change) ← `#ub-<base62>` in the URL. `src/lib/core/snapshot.js`:
+  JSON → bytes (Ukrainian letters 1 byte) → deflate-raw when shorter → base62 (the Artifact host passes only
+  letters/digits/hyphens); old `#ua-…` links still decode. The page waits for the (async) decode before rendering.
+  The block under the timeline copies `publishedUrl#ub-…` and has "Скинути налаштування". No server storage and no
+  runtime capabilities: the artifact never changes, and the link works for signed-out visitors too.
+- **Texts** ("✎ Редагувати тексти", `src/lib/core/editor.js`, `options.textEditor: false` hides it): any viewer can
+  change eyebrow, title, subtitle, source (uk + en) and "data as of" for their own view. Edits live in the settings
+  (`state.texts`) and travel in the link as the changed part of each text against the page's own (`textDiff`), so
+  small edits add only a few characters; a diff is dropped if the page's text has changed since.
 - Every layer and panel follows the timeline (play, to start, back, forward, to end, slider); domains are global
   across periods unless `options.domain = "per-period"`.
 - A data table (sortable, current period) is always added under the map, and above it a collapsible

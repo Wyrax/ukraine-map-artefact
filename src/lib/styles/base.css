@@ -292,6 +292,78 @@ body {
   color: var(--muted);
 }
 
+/* in-page text editor (editors of the published artifact only) */
+.ua-edit[hidden],
+.ua-editor[hidden] {
+  display: none;
+}
+.ua-editor {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+.ua-editor__title {
+  margin: 0;
+  font: 600 0.9375rem var(--font-display);
+}
+.ua-editor__grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 8px 12px;
+  font-size: 0.8125rem;
+}
+.ua-editor__grid > b {
+  font-weight: 600;
+  color: var(--muted);
+}
+.ua-editor__k {
+  padding-top: 8px;
+  color: var(--ink-2);
+}
+.ua-editor__in {
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 0.875rem/1.4 var(--font-ui);
+  resize: vertical;
+}
+.ua-editor__in:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.ua-editor__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  max-width: 80ch;
+}
+.ua-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.ua-editor__status {
+  font-size: 0.8125rem;
+}
+@media (max-width: 640px) {
+  .ua-editor__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ua-editor__grid > b,
+  .ua-editor__grid > span:first-child {
+    display: none;
+  }
+  .ua-editor__k {
+    padding-top: 4px;
+  }
+}
+
 .ua-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
