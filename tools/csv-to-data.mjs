@@ -14,6 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { matchRegion } from '../src/map/catalog.js';
+import { prettyJSON } from './lib/pretty-json.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, d = null) => (args.includes(name) ? args[args.indexOf(name) + 1] : d);
@@ -144,7 +145,7 @@ const data = {
   values: { columns: ['region', 'series', 'period', 'value'], rows: values.map((v) => (periods.length ? v : [v[0], v[1], null, v[3]])) },
 };
 fs.mkdirSync(path.dirname(out), { recursive: true });
-fs.writeFileSync(out, JSON.stringify(data, null, 0) + '\n');
+fs.writeFileSync(out, prettyJSON(data)); // readable; the build minifies it
 
 const regions = new Set(values.map((v) => v[0]));
 console.log(`✓ ${out}: ${values.length} values · ${regions.size} regions · series: ${[...series.keys()].join(', ')} · periods: ${periods.length || '—'} · ${isLong ? 'long' : 'wide'} format, delimiter "${delim === '\t' ? '\\t' : delim}"`);

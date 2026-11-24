@@ -67,7 +67,9 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
 - `periods` optional: any ordered labels (days, months, quarters, years). One period → the timeline hides itself.
 - A region with no rows for a period is "no data" (hatched), not zero. Send explicit zeros when zero is real.
 - `flows.to` is a region (flow map, `sankey` with `flows: "region"`) or a `categories` id (`sankey` default).
-- Keep data.json under ~100 KB (use the columnar form); larger data should be aggregated first.
+- data.json is kept pretty-printed (Prettier-style, 80 columns, one data row per line): `make-data.mjs` and
+  `npm run csv` write it with `tools/lib/pretty-json.mjs`. Never collapse it to one line; the build minifies it.
+- Keep the data itself small (~100 KB minified, columnar form); larger data should be aggregated first.
 
 ## artefact.json
 

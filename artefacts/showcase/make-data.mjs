@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { REGIONS } from '../../src/map/catalog.js';
+import { prettyJSON } from '../../tools/lib/pretty-json.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 let seed = 20261124;
@@ -91,5 +92,5 @@ const data = {
   values: { columns: ['region', 'series', 'period', 'value'], rows: values },
   flows: { columns: ['from', 'to', 'period', 'value'], rows: flows },
 };
-fs.writeFileSync(path.join(here, 'data.json'), JSON.stringify(data));
+fs.writeFileSync(path.join(here, 'data.json'), prettyJSON(data)); // readable; the build minifies it
 console.log(`showcase data: ${values.length} values, ${flows.length} flows, ${periods.length} periods`);
