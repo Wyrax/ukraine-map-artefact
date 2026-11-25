@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { REGION_IDS } from '../src/map/catalog.js';
+import { REGION_IDS, BY_ID } from '../src/map/catalog.js';
 
 const svg = fs.readFileSync(new URL('../src/map/ukraine.svg', import.meta.url), 'utf8');
 const geo = JSON.parse(fs.readFileSync(new URL('../src/map/regions.json', import.meta.url), 'utf8'));
@@ -43,6 +43,15 @@ test('svg has one region element per catalog id', () => {
   assert.deepEqual([...ids].sort(), [...REGION_IDS].sort());
 });
 
+test('every region shape in the svg carries the catalog KOATUU and KATOTTG codes', () => {
+  const tags = [...svg.matchAll(/<(?:path|circle) id="(UA-\d\d)"([^>]*)>/g)];
+  assert.equal(tags.length, 27);
+  for (const [, id, rest] of tags) {
+    assert.ok(rest.includes(`data-koatuu="${BY_ID[id].koatuu}"`), id);
+    assert.ok(rest.includes(`data-katottg="${BY_ID[id].katottg}"`), id);
+  }
+});
+
 test('regions.json covers every region with anchor, radius and bbox', () => {
   assert.deepEqual(Object.keys(geo.regions).sort(), [...REGION_IDS].sort());
   const [, , W, H] = geo.viewBox;
@@ -53,7 +62,7 @@ test('regions.json covers every region with anchor, radius and bbox', () => {
 });
 
 test('every path anchor and label point lies inside its own region', () => {
-  for (const m of svg.matchAll(/<path id="(UA-\d\d)" class="region" d="([^"]+)"/g)) {
+  for (const m of svg.matchAll(/<path id="(UA-\d\d)" class="region"[^>]*\sd="([^"]+)"/g)) {
     const [, id, d] = m;
     const polys = polygons(d);
     const r = geo.regions[id];

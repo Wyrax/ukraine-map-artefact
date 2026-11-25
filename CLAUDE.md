@@ -20,9 +20,14 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
 
 ## Layout
 
-- `src/map/catalog.js` — the 27 regions: ISO 3166-2:UA id (used everywhere), KOATUU/KATOTTG prefix, uk/en names,
-  hex-map cell, aliases for matching. `matchRegion()` resolves names in any common spelling and codes.
+- `src/map/catalog.js` — the 27 regions: ISO 3166-2:UA id (used everywhere), KOATUU/KATOTTG prefix (`code`), the
+  region's own `koatuu` (0500000000) and first-level `katottg` (UA05000000000010236, Minregion codifier), uk/en
+  names, hex-map cell, aliases for matching. `matchRegion()` resolves names in any common spelling, codes and Liquio
+  address objects; `codePrefix()` reads KOATUU/KATOTTG at any level, also without "UA" (as Liquio's address
+  register 164 writes it), with the leading zero lost in Excel, separators or the category letter, and `UA44`.
+  ISO and code prefixes never clash (UA-09/44, UA-30/80, UA-40/85, UA-43/01, UA-77/73).
 - `src/map/ukraine.svg`, `src/map/regions.json` — **generated** by `tools/extract-map.mjs`; never edit by hand.
+  Every region shape in the SVG and on the page carries `data-koatuu` and `data-katottg` next to its ISO id.
   regions.json: per region `anchor` (pole of inaccessibility, where glyphs go), `r` (inscribed radius), `label`
   (label point without a glyph), `glyphLabel` (`above` = name above the glyph), `capital`, `bbox`; plus `georef`
   (lat/lon → SVG, 2nd-order fit, ~3 km error). Label/glyph fixes live in `PLACEMENT` in extract-map.
@@ -63,7 +68,10 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
   "categories": [{ "id": "prod", "label": {"uk": "", "en": ""} }]
 }
 ```
-- `values`/`flows` may also be arrays of objects. `region` accepts ISO ids, names or codes. Duplicate rows are summed.
+- `values`/`flows` may also be arrays of objects. `region` (and `flows.from`/`to`) accepts ISO ids, names, KOATUU or
+  KATOTTG codes at any level (resolved to the oblast by their first two digits) or a Liquio `address` value / its
+  `region` part (read by `KATOTTGCode`, then Liquio's own `code`, then `KOATUUCode`, then `name`). Duplicate rows are summed. `npm run csv` finds the
+  region column by name (регіон, область, koatuu, коатуу, katottg, катоттг, код…) or takes `--region "<column>"`.
 - `periods` optional: any ordered labels (days, months, quarters, years). One period → the timeline hides itself.
 - A region with no rows for a period is "no data" (hatched), not zero. Send explicit zeros when zero is real.
 - `flows.to` is a region (flow map, `sankey` with `flows: "region"`) or a `categories` id (`sankey` default).

@@ -11,6 +11,12 @@ import { matchRegion, REGIONS, BY_ID } from '../../map/catalog.js';
 import { parseExpr, evalExpr } from './expr.js';
 
 const uniq = (arr) => [...new Set(arr)];
+/** How an unmatched region value is reported: address objects by their name, not as "[object Object]". */
+function shown(v) {
+  if (!v || typeof v !== 'object') return String(v);
+  const part = v.region && typeof v.region === 'object' ? v.region : v;
+  return String(part.name ?? part.KATOTTGCode ?? part.code ?? JSON.stringify(v).slice(0, 80));
+}
 
 /** Accepts records as an array of objects or the compact form {columns:[...], rows:[[...], ...]}. */
 export function records(v) {
@@ -40,7 +46,7 @@ export function prepareData(raw, config = {}) {
   for (const v of values) {
     const id = matchRegion(v.region);
     if (!id) {
-      unmatched.add(String(v.region));
+      unmatched.add(shown(v.region));
       continue;
     }
     const sid = v.series ?? series[0].id;
@@ -57,13 +63,13 @@ export function prepareData(raw, config = {}) {
   for (const f of records(raw.flows)) {
     const from = matchRegion(f.from);
     if (!from) {
-      unmatched.add(String(f.from));
+      unmatched.add(shown(f.from));
       continue;
     }
     const toRegion = catIds.has(f.to) ? null : matchRegion(f.to);
     const to = toRegion || (catIds.has(f.to) ? f.to : null);
     if (!to) {
-      unmatched.add(String(f.to));
+      unmatched.add(shown(f.to));
       continue;
     }
     for (const p of periodsOf(f.period)) flows.push({ from, to, toRegion: !!toRegion, series: f.series ?? null, p, value: Number(f.value) || 0 });

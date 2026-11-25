@@ -2,7 +2,7 @@
 // the optional occupation overlays (since 2014, and the latest DeepStateMap snapshot), and region accessibility attributes.
 import { s, attrs, clear } from './dom.js';
 import { hexPath } from './shapes.js';
-import { REGIONS } from '../../map/catalog.js';
+import { REGIONS, BY_ID } from '../../map/catalog.js';
 
 export function createMap(frame, ctx) {
   const svg = frame.querySelector('svg');
@@ -17,8 +17,12 @@ export function createMap(frame, ctx) {
   for (const g of [geoG, occ2014G]) for (const a of ['fill', 'stroke', 'stroke-width', 'display']) g?.removeAttribute(a);
   geoG.setAttribute('class', 'geo');
 
+  // every region shape (geo and hex) carries its ISO id and the region's own KOATUU / KATOTTG codes,
+  // so a script can find it by any of them: [data-katottg="UA05000000000010236"]
   const regionAttrs = (el, id) => {
     el.setAttribute('data-region', id);
+    el.setAttribute('data-koatuu', BY_ID[id].koatuu);
+    el.setAttribute('data-katottg', BY_ID[id].katottg);
     el.setAttribute('tabindex', '0');
     el.setAttribute('role', 'button');
   };

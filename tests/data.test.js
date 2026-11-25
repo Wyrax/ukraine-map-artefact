@@ -73,6 +73,21 @@ test('flows: region targets vs category targets', () => {
   assert.deepEqual(d.flows.map((f) => [f.to, f.toRegion]), [['UA-30', true], ['prod', false]]);
 });
 
+test('Liquio address objects and codes work as region values; unmatched ones are reported by name', () => {
+  const vin = { KATOTTGCode: '05000000000010236', KOATUUCode: '0500000000', name: 'Вінницька обл.' };
+  const d = prepareData({
+    series: [{ id: 'v' }],
+    values: {
+      columns: ['region', 'value'],
+      rows: [[vin, 2], [{ region: vin, city: { KATOTTGCode: '05020110010028819' } }, 3], ['510100000', 4], [{ name: 'Атлантида' }, 1]],
+    },
+    flows: [{ from: { region: { KATOTTGCode: '80000000000093317', name: 'м. Київ' } }, to: '4600000000', value: 5 }],
+  });
+  assert.equal(d.get('UA-05', 'v', 0), 9);
+  assert.deepEqual(d.flows.map((f) => [f.from, f.to]), [['UA-30', 'UA-46']]);
+  assert.deepEqual(d.unmatched, ['Атлантида']);
+});
+
 test('flow table: pairs summed, self-flows dropped, outflow / inflow / net per region, columns stable over periods', () => {
   const d = prepareData({
     series: [{ id: 'v' }],

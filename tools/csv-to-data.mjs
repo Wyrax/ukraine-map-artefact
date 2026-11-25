@@ -9,7 +9,9 @@
 //   node tools/csv-to-data.mjs input.csv --out artefacts/<slug>/data.json [--unit "шт."] [--title "…"]
 //        [--source "…"] [--updated 2026-11-24] [--delimiter ";"] [--allow-unmatched]
 //
-// Region names may be in any common spelling ("Вінницька обл.", "м. Київ", "Kyiv Oblast", KATOTTG codes…).
+// Region names may be in any common spelling ("Вінницька обл.", "м. Київ", "Kyiv Oblast") or KOATUU / KATOTTG
+// codes at any level (0510100000, UA05020110010028819, 05020110010028819 — see codePrefix in catalog.js); the
+// region column is found by name (регіон, область, koatuu, коатуу, katottg, катоттг, код…) or set with --region.
 // Unmatched names are listed and fail the run unless --allow-unmatched is given.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -86,7 +88,9 @@ const find = (flag, re) => {
   }
   return header.findIndex((h) => re.test(h.toLowerCase()));
 };
-const iRegion = find('--region', /^(регіон|область|region|oblast|адмінодиниця|назва регіону|region_name|region_id|katottg|катотг)$/);
+// the region column: a name or a KOATUU / KATOTTG code; a bare "код" / "code" column only when there is no better one
+const REGION_COLS = /^(регіон|область|region|oblast|адмінодиниця|назва регіону|region_name|region_id|region_code|код регіону|koatuu|коатуу|код коатуу|katottg|катоттг|катотг|код катоттг)$/;
+const iRegion = ((i) => (i >= 0 ? i : find('--region', /^(код|code)$/)))(find('--region', REGION_COLS));
 const iPeriod = find('--period', /^(період|дата|місяць|рік|квартал|period|date|month|year|quarter)$/);
 const iSeries = find('--series', /^(серія|показник|середовище|категорія|series|metric|environment|env|category)$/);
 const iValue = find('--value', /^(значення|кількість|к-сть|сума|value|count|total|amount)$/);
