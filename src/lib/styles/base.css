@@ -370,6 +370,13 @@ body {
   gap: 16px;
   align-items: start;
 }
+/* left column: the map card with "Налаштування панелей" right under it */
+.ua-maincol {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
 .ua.no-panels .ua-main {
   grid-template-columns: minmax(0, 1fr);
 }

@@ -159,7 +159,8 @@ export function createMap(frame, ctx) {
           let at;
           if (city) at = offset ? { x, y: y + o.below + 7, anchor: 'middle' } : { x: x + geo.r + 3, y: y + 3, anchor: 'start' };
           else if (offset) at = { x, y: geo.glyphLabel === 'above' ? y - o.above - 3 - (geo.glyphLabelDy || 0) : y + o.below + 7 + (geo.glyphLabelDy || 0), anchor: 'middle' };
-          else at = { x: geo.label[0], y: geo.label[1], anchor: 'middle' }; // label point from the source map (with fixes from extract-map)
+          // label point from the source map (with fixes from extract-map), optionally lifted by whole text lines
+          else at = { x: geo.label[0], y: geo.label[1] + (geo.labelLines || 0) * fs, anchor: 'middle' };
           const v = value?.(r.id);
           if (show) labelsG.appendChild(s('text', { x: at.x, y: at.y, class: 'map-label' + (city ? ' map-label--city' : ''), 'text-anchor': at.anchor, 'data-region': r.id }, name));
           // the number goes under the name (or takes its place when names are off); city values sit beside the circle

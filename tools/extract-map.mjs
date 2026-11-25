@@ -61,24 +61,40 @@ const KNOWN_ISLANDS = [
 //   glyphLabel    — 'above' puts the name above the glyph instead of below it
 //   anchor        — [x, y] (viewBox units) for the glyph instead of the pole of inaccessibility (must be inside)
 //   glyphLabelDy  — extra distance (viewBox units) between the glyph and the name on glyph maps
+//   labelLines    — without a glyph, move the name (and its number) by this many text lines (−1 = one line up);
+//                   in lines rather than units so the step matches the text at every map width
 const PLACEMENT = {
   // Kyiv Oblast wraps around the Kyiv circle: keep its glyph clear of the city's glyph and name,
   // and put its own name far south, away from the circle and from a chart drawn on Kyiv.
-  'UA-32': { cityClearance: 42, label: [49.72, 30.62] },
+  // The name is also moved left, towards the middle of the oblast at that height.
+  'UA-32': { cityClearance: 42, label: [49.72, 30.62], labelShift: [-18, 0] },
   // "Тернопільська" and "Хмельницька" run into each other at the same height: on every map, Ternopil's name goes
   // above the glyph spot and Khmelnytskyi's below it, as on the glyph maps.
   'UA-61': { labelAtGlyph: 'above', glyphLabel: 'above' },
-  'UA-68': { labelAtGlyph: 'below' },
+  'UA-68': { labelAtGlyph: 'below', labelLines: -1 },
   // "Закарпатська" and "Івано-Франківська" sit side by side at one height: drop the first, lift the second,
   // and on glyph maps put Zakarpattia's name above its glyph (IF's stays below)
   'UA-21': { labelShift: [-6, 18], glyphLabel: 'above' },
   'UA-26': { labelShift: [4, -18] },
-  // keeps "Вінницька" clear of "Хмельницька" on narrow maps
-  'UA-05': { labelShift: [0, 10] },
+  // keeps "Вінницька" clear of "Хмельницька" on narrow maps; then one text line up, like its neighbour
+  'UA-05': { labelShift: [0, 10], labelLines: -1 },
   // the Chernivtsi glyph sat under the end of "Івано-Франківська" (written below IF's glyph): move it east,
   // as far as the narrowing oblast allows while staying clear of the Khmelnytskyi and Vinnytsia glyphs
   // and its name a little lower, clear of that IF name on narrow maps
   'UA-77': { anchor: [270, 319], glyphLabelDy: 8 },
+  // the source map writes "Сумська" near the oblast's western border: centre it across the oblast instead
+  'UA-59': { labelShift: [26, 0] },
+  // names (and numbers) sitting low in their oblasts: one text line up (Kharkiv: two)
+  'UA-63': { labelLines: -2 },
+  'UA-43': { labelLines: -1 },
+  'UA-53': { labelLines: -1 },
+  'UA-07': { labelLines: -1 },
+  'UA-35': { labelLines: -1 },
+  'UA-23': { labelLines: -1 },
+  'UA-48': { labelLines: -1 },
+  // "Дніпропетровська" also to the right (towards the middle of the oblast), "Чернігівська" to the left
+  'UA-12': { labelShift: [32, 0], labelLines: -1 },
+  'UA-74': { labelShift: [-20, 0] },
 };
 const GLYPH_HALF = 29; // half of the default glyph box (options.glyphSize 58); map.js puts names 3 above / 7 below it
 
@@ -344,6 +360,7 @@ for (const reg of REGIONS) {
     label: label.map(r1),
     ...(fix.glyphLabel ? { glyphLabel: fix.glyphLabel } : {}),
     ...(fix.glyphLabelDy ? { glyphLabelDy: fix.glyphLabelDy } : {}),
+    ...(fix.labelLines ? { labelLines: fix.labelLines } : {}),
     capital: capitals[reg.id] ? T(capitals[reg.id]).map(r1) : null,
     bbox: bbox([...main, ...TP(rs.extra.flatMap((e) => e.polys))].flat()).map(r1),
   };

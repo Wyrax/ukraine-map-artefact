@@ -26,6 +26,7 @@
   <section class="ua-card ua-editor" data-slot="editor" hidden></section>
 
   <main class="ua-main">
+    <div class="ua-maincol">
     <section class="ua-card ua-mapcard" aria-label="Map">
       <div class="ua-maptop">
         <div class="seg" data-slot="modes" role="group" hidden></div>
@@ -39,10 +40,12 @@
       <div class="ua-timeline" data-slot="timeline"></div>
       <div class="ua-share" data-slot="share"></div>
     </section>
+    <!-- right under the map card, in the same column -->
+    <details class="ua-card ua-panelcfg" data-slot="panelcfg" hidden></details>
+    </div>
     <aside class="ua-side" data-slot="panels"></aside>
   </main>
 
-  <details class="ua-card ua-panelcfg" data-slot="panelcfg" hidden></details>
   <details class="ua-card ua-tablewrap" data-slot="table"></details>
   <footer class="ua-foot" data-slot="footer"></footer>
 </div>
