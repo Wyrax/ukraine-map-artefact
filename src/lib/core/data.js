@@ -91,6 +91,35 @@ export function prepareData(raw, config = {}) {
   };
 }
 
+/**
+ * The flows of one period for the data table: pairs (duplicate rows summed; a region's flow to itself is left out,
+ * as on the map and in the Sankey), each region's outflow and inflow, and the period's total.
+ * When the data has any region → region flows, the per-region figures count only those (so outflow, inflow and net
+ * describe moves between regions); with category targets only, outflow is everything a region sends.
+ * `toRegions` and `hasSeries` look at every period, so the table keeps the same columns while the timeline plays.
+ */
+export function flowTable(data, p) {
+  const toRegions = data.flows.some((f) => f.toRegion);
+  const hasSeries = data.flows.some((f) => f.series != null);
+  const all = data.flowsAt(p).filter((f) => !(f.toRegion && f.from === f.to));
+  const pairs = new Map();
+  for (const f of all) {
+    const key = `${f.from}>${f.to}>${f.series ?? ''}`;
+    const cur = pairs.get(key);
+    if (cur) cur.value += f.value;
+    else pairs.set(key, { key, from: f.from, to: f.to, toRegion: f.toRegion, series: f.series, value: f.value });
+  }
+  const byRegion = new Map();
+  const at = (id) => byRegion.get(id) || byRegion.set(id, { out: 0, in: 0 }).get(id);
+  for (const f of all) {
+    if (toRegions && !f.toRegion) continue;
+    at(f.from).out += f.value;
+    if (f.toRegion) at(f.to).in += f.value;
+  }
+  const total = all.reduce((a, f) => a + f.value, 0);
+  return { pairs: [...pairs.values()], byRegion, total, toRegions, hasSeries };
+}
+
 /** Builds the measure registry: series, "total", and derived expression measures. */
 export function buildMeasures(data, config = {}) {
   const m = new Map();

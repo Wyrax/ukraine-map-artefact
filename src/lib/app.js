@@ -5,7 +5,7 @@ import { h, s, clear, esc } from './core/dom.js';
 import { createState } from './core/state.js';
 import { STRINGS, pick } from './core/i18n.js';
 import { formatValue } from './core/format.js';
-import { prepareData, buildMeasures, domainOf, valuesOf } from './core/data.js';
+import { prepareData, buildMeasures, domainOf, valuesOf, flowTable } from './core/data.js';
 import { createMap } from './core/map.js';
 import { createTooltip } from './core/tooltip.js';
 import { createTimeline } from './core/timeline.js';
@@ -87,6 +87,8 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
     // bottom blocks ("Налаштування панелей", "Таблиця даних") open or closed, and per-panel choices
     panelCfgOpen: false,
     tableOpen: false,
+    // the data table's tab: "regions" (one row per region) or "flows" (one row per pair, when the data has flows)
+    tableView: 'regions',
     panelOpts: {},
     // the viewer's own versions of the page texts ("✎ Редагувати тексти"): { title: {uk?, en?}, …, updated }
     texts: {},
@@ -95,7 +97,7 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
   const baseText = (key) => (key === 'source' || key === 'updated' ? raw.meta?.[key] : config[key]);
   const TEXT_KEYS = { eyebrow: 'e', title: 't', subtitle: 's', source: 'r' };
   // short keys keep the link short; the period travels as its id so it survives months being added later
-  const SNAP = { m: 'mode', p: 'period', l: 'lang', s: 'selected', n: 'labels', o: 'occupation', c: 'palette', v: 'viewOpts', h: 'hiddenPanels', k: 'collapsedPanels', g: 'panelCfgOpen', t: 'tableOpen', q: 'panelOpts' };
+  const SNAP = { m: 'mode', p: 'period', l: 'lang', s: 'selected', n: 'labels', o: 'occupation', c: 'palette', v: 'viewOpts', h: 'hiddenPanels', k: 'collapsedPanels', g: 'panelCfgOpen', t: 'tableOpen', f: 'tableView', q: 'panelOpts' };
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const isFlat = (o) => !!o && typeof o === 'object' && !Array.isArray(o) && Object.values(o).every((v) => ['string', 'number', 'boolean'].includes(typeof v));
   const strList = (v) => (Array.isArray(v) ? v.map(String) : null);
@@ -138,6 +140,7 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
     if (strList(o.k)) st.collapsedPanels = strList(o.k);
     if (typeof o.g === 'boolean') st.panelCfgOpen = o.g;
     if (typeof o.t === 'boolean') st.tableOpen = o.t;
+    if (o.f === 'flows' && data.flows.length) st.tableView = 'flows';
     if (o.q && typeof o.q === 'object' && !Array.isArray(o.q) && Object.values(o.q).every(isFlat)) st.panelOpts = o.q;
     if (o.x && typeof o.x === 'object') {
       const texts = {};
@@ -179,6 +182,8 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
     ...storedSettings(),
     ...fromSnap(linkSnap),
     hover: null,
+    // a row of the flows table under the pointer: { key, from, to, toRegion } (both regions light up on the map)
+    hoverFlow: null,
     playing: false,
   });
 
@@ -574,45 +579,122 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
   }
 
   // ---------- data table ----------
+  // Two tabs when the data has flows: "Області" (one row per region; with flows also outflow, inflow and net) and
+  // "Потоки" (one row per pair). Both follow the timeline and sort by any column.
   const tableEl = slot('table');
-  let sortKey = null;
+  const hasFlows = data.flows.length > 0;
+  let sortKey = null; // regions tab: -1 = name, else a column index
   let sortDir = -1;
+  let flowSort = { key: 'value', dir: -1 }; // flows tab
+  const num = (v) => formatValue(v, 'number', state.get().lang);
+  const signed = (v) => (v == null ? '—' : (v > 0 ? '+' : '') + num(v));
+  const sortTh = (label, active, dir, isNum, onSort) =>
+    h('th', { scope: 'col', class: isNum ? 'num' : '', 'aria-sort': active ? (dir > 0 ? 'ascending' : 'descending') : null },
+      h('button', { type: 'button', class: 'th-sort', onclick: () => { onSort(); renderTable(); tableEl.open = true; } }, label));
+
   function renderTable() {
     const st = state.get();
     clear(tableEl);
     tableEl.appendChild(h('summary', {}, ctx.t('table') + ' · ' + ctx.periodLabel(st.period)));
+    const ft = hasFlows ? flowTable(data, st.period) : null;
+    const view = hasFlows && st.tableView === 'flows' ? 'flows' : 'regions';
+    if (hasFlows) {
+      const tabs = [['regions', ctx.t('tableRegions')], ['flows', `${ctx.t('tableFlows')} · ${ft.pairs.length}`]];
+      tableEl.appendChild(h('div', { class: 'ua-table__bar' },
+        h('div', { class: 'seg seg--sm', role: 'group', 'aria-label': ctx.t('table') },
+          tabs.map(([v, txt]) => h('button', { type: 'button', class: 'seg__btn', 'aria-pressed': String(view === v), onclick: () => state.set({ tableView: v, hoverFlow: null }) }, txt)))));
+    }
+    const table = view === 'flows' ? flowsTable(st, ft) : regionsTable(st, ft);
+    tableEl.appendChild(h('div', { class: 'ua-table__scroll' }, table));
+  }
+
+  function regionsTable(st, ft) {
     const ids = [...new Set([...activeMeasureIds(), ...data.series.map((x) => x.id), ...(config.measures || []).map((x) => x.id)])];
-    const rows = REGIONS.map((r) => ({ id: r.id, name: ctx.regionName(r.id, true), vals: ids.map((m) => ctx.measure(m).get(r.id, st.period)) }));
-    if (sortKey != null) {
+    const cols = ids.map((m) => ({ label: ctx.label(m), get: (id) => ctx.measure(m).get(id, st.period), fmt: (v) => ctx.fmt(v, m), nat: ctx.measure(m).nat(st.period) }));
+    if (ft) {
+      // a region with no flows in this period gets dashes, not zeros
+      const fl = (id) => ft.byRegion.get(id);
+      const sum = (k) => [...ft.byRegion.values()].reduce((a, x) => a + x[k], 0);
+      cols.push({ label: ctx.t('flowOut'), get: (id) => fl(id)?.out ?? null, fmt: num, nat: sum('out') });
+      if (ft.toRegions) {
+        cols.push({ label: ctx.t('flowIn'), get: (id) => fl(id)?.in ?? null, fmt: num, nat: sum('in') });
+        cols.push({ label: ctx.t('flowNet'), get: (id) => (fl(id) ? fl(id).in - fl(id).out : null), fmt: signed, nat: sum('in') - sum('out') });
+      }
+    }
+    const rows = REGIONS.map((r) => ({ id: r.id, name: ctx.regionName(r.id, true), vals: cols.map((c) => c.get(r.id)) }));
+    if (sortKey != null && sortKey < cols.length) {
       rows.sort((a, b) => (sortKey === -1 ? a.name.localeCompare(b.name, st.lang) * -sortDir : ((a.vals[sortKey] ?? -Infinity) - (b.vals[sortKey] ?? -Infinity)) * sortDir));
     } else rows.sort((a, b) => a.name.localeCompare(b.name, st.lang));
-    const th = (label, key, num) =>
-      h('th', { scope: 'col', class: num ? 'num' : '', 'aria-sort': sortKey === key ? (sortDir > 0 ? 'ascending' : 'descending') : null },
-        h('button', { type: 'button', class: 'th-sort', onclick: () => { sortDir = sortKey === key ? -sortDir : -1; sortKey = key; renderTable(); tableEl.open = true; } }, label));
-    const table = h('table', { class: 'ua-table' },
-      h('thead', {}, h('tr', {}, th(ctx.t('region'), -1, false), ids.map((m, i) => th(ctx.label(m), i, true)))),
-      h('tbody', {}, rows.map((r) => h('tr', { 'data-region': r.id }, h('th', { scope: 'row' }, r.name), r.vals.map((v, i) => h('td', { class: 'num' }, ctx.fmt(v, ids[i])))))),
-      h('tfoot', {}, h('tr', {}, h('th', { scope: 'row' }, ctx.t('ukraine')), ids.map((m) => h('td', { class: 'num' }, ctx.fmt(ctx.measure(m).nat(st.period), m))))),
+    const th = (label, key, isNum) => sortTh(label, sortKey === key, sortDir, isNum, () => { sortDir = sortKey === key ? -sortDir : -1; sortKey = key; });
+    return h('table', { class: 'ua-table' },
+      h('thead', {}, h('tr', {}, th(ctx.t('region'), -1, false), cols.map((c, i) => th(c.label, i, true)))),
+      h('tbody', {}, rows.map((r) => h('tr', { 'data-region': r.id }, h('th', { scope: 'row' }, r.name), r.vals.map((v, i) => h('td', { class: 'num' }, cols[i].fmt(v)))))),
+      h('tfoot', {}, h('tr', {}, h('th', { scope: 'row' }, ctx.t('ukraine')), cols.map((c) => h('td', { class: 'num' }, c.fmt(c.nat))))),
     );
-    tableEl.appendChild(h('div', { class: 'ua-table__scroll' }, table));
+  }
+
+  function flowsTable(st, ft) {
+    // shares always with one decimal ("6,0 %" under "7,7 %"), so the column lines up
+    const pctFmt = new Intl.NumberFormat(st.lang === 'en' ? 'en-GB' : 'uk-UA', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const pct1 = (v) => (v == null ? '—' : pctFmt.format(v));
+    const target = (f) => (f.toRegion ? ctx.regionName(f.to) : ctx.pick(data.categories.find((c) => c.id === f.to)?.label) || f.to);
+    const seriesName = (sid) => (sid == null ? '—' : ctx.pick(data.series.find((x) => x.id === sid)?.label) || sid);
+    const cols = [
+      { key: 'from', label: ctx.t('from'), text: (f) => ctx.regionName(f.from) },
+      { key: 'to', label: ctx.t('to'), text: target },
+      ...(ft.hasSeries ? [{ key: 'series', label: ctx.t('flowSeries'), text: (f) => seriesName(f.series) }] : []),
+      { key: 'value', label: ctx.t('flowValue'), num: (f) => f.value, fmt: num },
+      { key: 'share', label: ctx.t('flowShare'), num: (f) => (ft.total ? f.value / ft.total : null), fmt: pct1 },
+    ];
+    const col = cols.find((c) => c.key === flowSort.key) || cols.find((c) => c.key === 'value');
+    const cmp = (a, b) => (col.text ? col.text(a).localeCompare(col.text(b), st.lang) : (col.num(a) ?? -Infinity) - (col.num(b) ?? -Infinity));
+    // ties (same number, same source) keep a stable order: by source, then by target
+    const tie = (a, b) => ctx.regionName(a.from).localeCompare(ctx.regionName(b.from), st.lang) || target(a).localeCompare(target(b), st.lang);
+    const rows = [...ft.pairs].sort((a, b) => cmp(a, b) * flowSort.dir || tie(a, b));
+    const th = (c) => sortTh(c.label, col === c, flowSort.dir, !!c.num, () => { flowSort = { key: c.key, dir: flowSort.key === c.key ? -flowSort.dir : c.num ? -1 : 1 }; });
+    const body = rows.length
+      ? rows.map((f) => h('tr', { 'data-flow': f.key }, cols.map((c, i) => (c.num ? h('td', { class: 'num' }, c.fmt(c.num(f))) : i === 0 ? h('th', { scope: 'row' }, c.text(f)) : h('td', {}, c.text(f))))))
+      : [h('tr', {}, h('td', { colspan: String(cols.length), class: 'ua-table__empty' }, ctx.t('noData')))];
+    const tbody = h('tbody', {}, body);
+    // pointing at a row lights up both regions (and that arrow on the flow map)
+    const rowOf = (el) => el?.closest?.('tr[data-flow]');
+    tbody.addEventListener('pointerover', (e) => {
+      const tr = rowOf(e.target);
+      const f = tr && ft.pairs.find((x) => x.key === tr.getAttribute('data-flow'));
+      if (f && state.get().hoverFlow?.key !== f.key) state.set({ hoverFlow: { key: f.key, from: f.from, to: f.to, toRegion: f.toRegion } });
+    });
+    tbody.addEventListener('pointerout', (e) => {
+      const tr = rowOf(e.target);
+      if (tr && tr !== rowOf(e.relatedTarget)) state.set({ hoverFlow: null });
+    });
+    const foot = cols.map((c, i) => {
+      if (i === 0) return h('th', { scope: 'row' }, ctx.t('flowTotal'));
+      if (c.key === 'value') return h('td', { class: 'num' }, num(ft.total));
+      if (c.key === 'share') return h('td', { class: 'num' }, ft.total ? formatValue(1, 'pct', st.lang) : '—');
+      return h('td', {});
+    });
+    return h('table', { class: 'ua-table ua-table--flows' }, h('thead', {}, h('tr', {}, cols.map(th))), tbody, h('tfoot', {}, h('tr', {}, foot)));
   }
 
   // ---------- highlight & tooltip ----------
   let lastHover = null;
   function applyHighlight() {
-    const { hover, selected } = state.get();
-    root.classList.toggle('has-hover', !!hover);
+    const { hover, hoverFlow, selected } = state.get();
+    // a region under the pointer, or both ends of a row in the flows table
+    const hot = hover ? [hover] : hoverFlow ? [hoverFlow.from, ...(hoverFlow.toRegion ? [hoverFlow.to] : [])] : [];
+    root.classList.toggle('has-hover', hot.length > 0);
     root.classList.toggle('has-selection', selected.length > 0);
     for (const el of root.querySelectorAll('.is-hover')) el.classList.remove('is-hover');
     for (const el of root.querySelectorAll('.is-selected')) el.classList.remove('is-selected');
-    if (hover) {
-      for (const el of root.querySelectorAll(`[data-region="${hover}"]`)) el.classList.add('is-hover');
+    for (const id of hot) {
+      for (const el of root.querySelectorAll(`[data-region="${id}"]`)) el.classList.add('is-hover');
       // raise hovered geo shape so its outline is not covered by neighbours; keep city circles on top
       if (map.layout === 'geo') {
-        for (const el of map.regionEls(hover)) if (!el.classList.contains('region--city')) el.parentNode.appendChild(el);
+        for (const el of map.regionEls(id)) if (!el.classList.contains('region--city')) el.parentNode.appendChild(el);
         for (const el of map.svg.querySelectorAll('.geo .region--city')) el.parentNode.appendChild(el);
       }
     }
+    if (hoverFlow) for (const el of root.querySelectorAll(`tr[data-flow="${CSS.escape(hoverFlow.key)}"]`)) el.classList.add('is-hover');
     for (const id of selected) for (const el of root.querySelectorAll(`[data-region="${id}"]`)) el.classList.add('is-selected');
   }
 
@@ -760,7 +842,8 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
       if (lastHover && regionTipShown && !tooltip.el.hidden) tooltip.show(regionTip(lastHover));
     }
     if (ch.has('period') || ch.has('playing')) timeline.update();
-    if (ch.has('hover') || ch.has('selected')) applyHighlight();
+    if (ch.has('hover') || ch.has('hoverFlow') || ch.has('selected')) applyHighlight();
+    if (ch.has('tableView') && !relang) renderTable();
     if (ch.has('selected') && !relang) {
       for (const l of active) l.update?.(ch);
       for (const p of panels) p.update?.(ch);
@@ -819,7 +902,7 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
     for (const k of ['ua-state', 'ua-lang', 'ua-palette', 'ua-panels', 'ua-panels-collapsed']) store.set(k, '');
     if (isSnapshotCode(location.hash)) location.hash = '';
     timeline.stop();
-    state.set({ ...defaults, hover: null });
+    state.set({ ...defaults, hover: null, hoverFlow: null });
   }
   function renderShare() {
     const el = slot('share');

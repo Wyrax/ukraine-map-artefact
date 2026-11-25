@@ -100,12 +100,13 @@ export default {
       void cur;
     }
 
+    // a hovered region brings out its arrows; a hovered row of the flows table, that one arrow
     function related() {
-      const hv = ctx.state.get().hover;
-      g.classList.toggle('has-focus', !!hv);
+      const { hover: hv, hoverFlow: hf } = ctx.state.get();
+      g.classList.toggle('has-focus', !!hv || !!hf);
       for (const k of keys) {
         const [from, to] = k.split('>');
-        nodes[k].classList.toggle('is-related', !!hv && (from === hv || to === hv));
+        nodes[k].classList.toggle('is-related', hf ? hf.from === from && hf.to === to : !!hv && (from === hv || to === hv));
       }
     }
 
@@ -123,7 +124,7 @@ export default {
       ctx.tooltip.hide();
     });
 
-    const off = ctx.state.on((st, ch) => ch.has('hover') && related());
+    const off = ctx.state.on((st, ch) => (ch.has('hover') || ch.has('hoverFlow')) && related());
     draw();
     ctx.legend.add(catLegend({ title: ctx.pick(cfg.legendTitle) || (ctx.lang() === 'en' ? 'Flows between regions' : 'Потоки між регіонами'), items: [{ label: ctx.lang() === 'en' ? 'arrow width = volume' : 'товщина стрілки = обсяг', color, shape: 'line' }] }));
     return {

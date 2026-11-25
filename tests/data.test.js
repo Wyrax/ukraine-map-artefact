@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseExpr, evalExpr, exprIds } from '../src/lib/core/expr.js';
-import { prepareData, buildMeasures, domainOf, records } from '../src/lib/core/data.js';
+import { prepareData, buildMeasures, domainOf, records, flowTable } from '../src/lib/core/data.js';
 
 test('expressions: precedence, brackets, ids, division by zero', () => {
   const v = { a: 6, b: 2, 'my-id': 10 };
@@ -71,4 +71,45 @@ test('flows: region targets vs category targets', () => {
   });
   assert.equal(d.flows.length, 2);
   assert.deepEqual(d.flows.map((f) => [f.to, f.toRegion]), [['UA-30', true], ['prod', false]]);
+});
+
+test('flow table: pairs summed, self-flows dropped, outflow / inflow / net per region, columns stable over periods', () => {
+  const d = prepareData({
+    series: [{ id: 'v' }],
+    periods: ['2025', '2026'],
+    values: [],
+    flows: [
+      { from: 'UA-14', to: 'UA-12', period: '2025', value: 10 },
+      { from: 'UA-14', to: 'UA-12', period: '2025', value: 5 }, // duplicate pair → summed
+      { from: 'UA-12', to: 'UA-30', period: '2025', value: 7 },
+      { from: 'UA-30', to: 'UA-30', period: '2025', value: 99 }, // to itself → left out
+      { from: 'UA-46', to: 'UA-30', period: '2026', value: 2, series: 'v' },
+    ],
+  });
+  const t = flowTable(d, 0);
+  assert.deepEqual(t.pairs.map((f) => [f.from, f.to, f.value]), [['UA-14', 'UA-12', 15], ['UA-12', 'UA-30', 7]]);
+  assert.equal(t.total, 22);
+  assert.deepEqual(t.byRegion.get('UA-14'), { out: 15, in: 0 });
+  assert.deepEqual(t.byRegion.get('UA-12'), { out: 7, in: 15 });
+  assert.deepEqual(t.byRegion.get('UA-30'), { out: 0, in: 7 });
+  assert.equal(t.byRegion.get('UA-46'), undefined, 'no flows in this period → no figures (shown as a dash)');
+  assert.ok(t.toRegions && t.hasSeries, 'series seen in 2026 already counts for 2025, so the columns do not jump');
+  const sum = (k) => [...t.byRegion.values()].reduce((a, x) => a + x[k], 0);
+  assert.equal(sum('out'), sum('in'), 'between regions everything that leaves arrives somewhere');
+});
+
+test('flow table: category targets only → outflow is everything a region sends', () => {
+  const d = prepareData({
+    series: [{ id: 'v' }],
+    categories: [{ id: 'prod' }, { id: 'test' }],
+    values: [],
+    flows: [
+      { from: 'UA-46', to: 'prod', value: 4 },
+      { from: 'UA-46', to: 'test', value: 1 },
+    ],
+  });
+  const t = flowTable(d, 0);
+  assert.equal(t.toRegions, false);
+  assert.deepEqual(t.byRegion.get('UA-46'), { out: 5, in: 0 });
+  assert.equal(t.pairs.length, 2);
 });

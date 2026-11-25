@@ -1481,6 +1481,17 @@ body {
   overflow-x: auto;
   padding: 0 16px 16px;
 }
+/* "Області · Потоки" switch above the table (only when the data has flows) */
+.ua-table__bar {
+  padding: 0 16px 10px;
+}
+.ua-table__empty {
+  color: var(--muted);
+  text-align: center;
+}
+.ua-table--flows tbody tr {
+  cursor: default;
+}
 .ua-table {
   width: 100%;
   border-collapse: collapse;

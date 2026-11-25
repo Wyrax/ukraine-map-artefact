@@ -109,7 +109,7 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
   Columns stand on a base just below the anchor (`columnFrame` in `_glyph.js`); layers can return `labelOffset(id)`
   and `labelValue` (measure id) to place names and numbers.
 - **Saved settings and share link**: the view, its options, the month, language, palette, names, occupation layers,
-  selected regions, hidden/collapsed panels, the two bottom blocks, the Dynamics "all regions" choice and edited texts
+  selected regions, hidden/collapsed panels, the two bottom blocks and the table tab, the Dynamics "all regions" choice and edited texts
   form one snapshot (`toSnap`/`fromSnap` in app.js, only values that differ from the defaults). Restore order:
   defaults ← `localStorage["ua-state"]` (saved as things change) ← `#ub-<base62>` in the URL. `src/lib/core/snapshot.js`:
   JSON → bytes (Ukrainian letters 1 byte) → deflate-raw when shorter → base62 (the Artifact host passes only
@@ -122,7 +122,10 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
   small edits add only a few characters; a diff is dropped if the page's text has changed since.
 - Every layer and panel follows the timeline (play, to start, back, forward, to end, slider); domains are global
   across periods unless `options.domain = "per-period"`.
-- A data table (sortable, current period) is always added at the bottom of the page. Right under the map card, in the
+- A data table (sortable, current period) is always added at the bottom of the page. When the data has flows it gets
+  two tabs (`tableView`): "Області" with Відтік / Приплив / Сальдо columns per region (only Відтік when flows go to
+  categories) and "Потоки", one row per pair with its share of the period's flows; pointing at a pair lights up both
+  regions and that arrow (`hoverFlow`). Totals come from `flowTable()` in data.js (self-flows left out, as on the map). Right under the map card, in the
   same column (`.ua-maincol`), sits the collapsible "Налаштування панелей" block with a toggle per side panel (viewer's choice kept in localStorage; hiding all panels
   gives the map the full width). Every side panel is a `<details>`: its title collapses it like the table (collapsed
   panels remembered in localStorage; charts redraw at full width when reopened). `panels[].hidden: true` starts a panel hidden, `panels[].id` keeps the choice stable
