@@ -896,10 +896,12 @@ body {
   color: var(--muted);
   max-width: 72ch;
 }
+/* buttons and speed first; the slider and the month go on a line of their own when the slider would get short */
 .tl-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 10px 8px;
 }
 .tl-play {
   flex: none;
@@ -941,6 +943,22 @@ body {
   margin: auto;
   fill: currentColor;
 }
+/* playback speed ×1 ×2 ×3, right after "to the end" */
+.tl-speed {
+  flex: none;
+  flex-wrap: nowrap;
+}
+.tl-speed.seg--sm .seg__btn {
+  padding: 5px 7px;
+  font-variant-numeric: tabular-nums;
+}
+.tl-tail {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .tl-track {
   flex: 1;
   min-width: 0;
@@ -970,17 +988,6 @@ body {
   white-space: nowrap;
 }
 @media (max-width: 600px) {
-  .tl-row {
-    flex-wrap: wrap;
-    row-gap: 10px;
-  }
-  .tl-track {
-    order: 5;
-    flex-basis: 100%;
-  }
-  .tl-label {
-    margin-left: auto;
-  }
   .ua-maptop [data-slot='modes'] {
     flex-wrap: nowrap;
     max-width: 100%;

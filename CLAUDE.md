@@ -128,8 +128,10 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
   change eyebrow, title, subtitle, source (uk + en) and "data as of" for their own view. Edits live in the settings
   (`state.texts`) and travel in the link as the changed part of each text against the page's own (`textDiff`), so
   small edits add only a few characters; a diff is dropped if the page's text has changed since.
-- Every layer and panel follows the timeline (play, to start, back, forward, to end, slider); domains are global
-  across periods unless `options.domain = "per-period"`.
+- Every layer and panel follows the timeline (to start, back, play, forward, to end, speed ×1/×2/×3, slider); domains
+  are global across periods unless `options.domain = "per-period"`. `options.interval` is one period at ×1; the
+  speed is part of the saved settings and the link (`speed`). On a narrow card the slider and the month move to a
+  second line together (`.tl-tail`).
 - A data table (sortable, current period) is always added at the bottom of the page. When the data has flows it gets
   two tabs (`tableView`): "Області" with Відтік / Приплив / Сальдо columns per region (only Відтік when flows go to
   categories) and "Потоки", one row per pair with its share of the period's flows; pointing at a pair lights up both
@@ -162,14 +164,13 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
   two lines up. Radial bars: the Crimea and Lviv glyphs two lines up, their names under them. Radar: Crimea, Lviv,
   Sumy and Vinnytsia two lines up, Mykolaiv 1.5 left. The bubble legend shows three sizes (e.g. 5 000 / 2 500 /
   1 000), labels kept apart.
+  On columns (bars, stacked) every name sits under its columns at the same gap, since they grow upwards: Zakarpattia
+  and Ternopil (names above the glyph elsewhere) have their columns moved 1.5 and 1 lines down so their names clear
+  Ivano-Frankivsk and Khmelnytskyi; Kyiv Oblast and Crimea are moved 2 lines up. A name lifted into a progress ring
+  (`lines`) drops back under it while the rings show their numbers inside (`valuesInside`).
 - Hex tiles: with a glyph on the tile (e.g. "Соти + кільця") names use the catalog `abbr` ("Дніпро", "Севаст.");
   on the plain hex map they are written in full, shrunk to fit the tile, or on two lines when that would take them
   below 80% (after the hyphen, or at the catalog's `wrap`: "Дніпро-|петровська", "Кірово-|градська").
-  On columns (bars, stacked) every name sits under its columns at the same gap, since they grow upwards: Zakarpattia
-  and Ternopil (names above the glyph elsewhere) have their columns moved 1.5 and 1 lines down so their names clear
-  Ivano-Frankivsk and Khmelnytskyi; Kyiv Oblast and Crimea are moved 2 lines up. On round glyphs (bubbles, pies,
-  radial bars, progress rings) the Crimea and Lviv names are two lines up, except while the rings show their numbers
-  inside (`valuesInside`): then no name is lifted into a ring.
 - Crimea and Sevastopol must never look apart from other regions (no special colour); in demo data Sevastopol
   shares Crimea's monthly totals so the circle never stands out from the peninsula.
 - Hex layout positions live in `catalog.js` (`hex: [col, row]`, odd rows shifted right).

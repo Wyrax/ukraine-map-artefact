@@ -71,6 +71,7 @@ export const STRINGS = {
     flowIn: 'Приплив',
     flowNet: 'Сальдо',
     timeline: 'Шкала часу',
+    speed: 'Швидкість відтворення',
     legendNoData: 'немає даних',
   },
   en: {
@@ -144,6 +145,7 @@ export const STRINGS = {
     flowIn: 'Inflow',
     flowNet: 'Net',
     timeline: 'Timeline',
+    speed: 'Playback speed',
     legendNoData: 'no data',
   },
 };

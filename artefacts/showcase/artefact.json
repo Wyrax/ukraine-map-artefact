@@ -166,6 +166,19 @@
       ]
     },
     {
+      "id": "flows",
+      "label": {
+        "uk": "Потоки",
+        "en": "Flows"
+      },
+      "layers": [
+        {
+          "type": "flows",
+          "slot": 2
+        }
+      ]
+    },
+    {
       "id": "hex",
       "label": {
         "uk": "Соти",
@@ -196,19 +209,6 @@
             "prod"
           ],
           "donut": true
-        }
-      ]
-    },
-    {
-      "id": "flows",
-      "label": {
-        "uk": "Потоки",
-        "en": "Flows"
-      },
-      "layers": [
-        {
-          "type": "flows",
-          "slot": 2
         }
       ]
     }

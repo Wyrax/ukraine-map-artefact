@@ -1,6 +1,8 @@
-// Period slider with play/pause, jump to the first / last period and step back / forward.
+// Period slider: to the start, back, play/pause, forward, to the end, playback speed (×1 ×2 ×3), then the slider.
 // Hidden when the data has a single period.
 import { h } from './dom.js';
+
+export const SPEEDS = [1, 2, 3];
 
 export function createTimeline(container, ctx) {
   const { periods } = ctx.data;
@@ -8,7 +10,8 @@ export function createTimeline(container, ctx) {
     container.hidden = true;
     return { update() {}, stop() {} };
   }
-  const interval = ctx.config.options?.interval ?? 1300;
+  const interval = ctx.config.options?.interval ?? 1300; // one period at ×1
+  const step = () => interval / (ctx.state.get().speed || 1);
   let timer = 0;
 
   const playBtn = h('button', { type: 'button', class: 'tl-play', id: 'ua-tl-play' });
@@ -20,7 +23,11 @@ export function createTimeline(container, ctx) {
   const range = h('input', { type: 'range', min: 0, max: periods.length - 1, step: 1, id: 'ua-tl-range', class: 'tl-range' });
   const label = h('output', { class: 'tl-label', for: 'ua-tl-range' });
   const ends = h('div', { class: 'tl-ends', 'aria-hidden': 'true' }, h('span', {}, ctx.periodLabel(0)), h('span', {}, ctx.periodLabel(periods.length - 1)));
-  container.append(h('div', { class: 'tl-row' }, playBtn, firstBtn, prevBtn, nextBtn, lastBtn, h('div', { class: 'tl-track' }, range, ends), label));
+  const speedBtns = SPEEDS.map((n) => h('button', { type: 'button', class: 'seg__btn', 'data-speed': n, onclick: () => ctx.state.set({ speed: n }) }, `×${n}`));
+  const speedSeg = h('div', { class: 'seg seg--sm tl-speed', role: 'group' }, speedBtns);
+  // the slider and the month stay together: on a narrow card they move to a second line as one block
+  const tail = h('div', { class: 'tl-tail' }, h('div', { class: 'tl-track' }, range, ends), label);
+  container.append(h('div', { class: 'tl-row' }, firstBtn, prevBtn, playBtn, nextBtn, lastBtn, speedSeg, tail));
 
   const go = (p) => ctx.state.set({ period: Math.max(0, Math.min(periods.length - 1, p)) });
   const stop = () => {
@@ -28,15 +35,27 @@ export function createTimeline(container, ctx) {
     timer = 0;
     ctx.state.set({ playing: false });
   };
+  const tick = () => {
+    const p = ctx.state.get().period;
+    if (p >= periods.length - 1) stop();
+    else go(p + 1);
+  };
   const play = () => {
     if (ctx.state.get().period >= periods.length - 1) go(0);
     ctx.state.set({ playing: true });
-    timer = setInterval(() => {
-      const p = ctx.state.get().period;
-      if (p >= periods.length - 1) stop();
-      else go(p + 1);
-    }, interval);
+    timer = setInterval(tick, step());
   };
+  // a new speed while playing takes effect from the next step
+  let lastSpeed = ctx.state.get().speed;
+  ctx.state.on((st, ch) => {
+    if (!ch.has('speed') || st.speed === lastSpeed) return;
+    lastSpeed = st.speed;
+    if (timer) {
+      clearInterval(timer);
+      timer = setInterval(tick, step());
+    }
+    update();
+  });
   playBtn.addEventListener('click', () => (timer ? stop() : play()));
   prevBtn.addEventListener('click', () => {
     stop();
@@ -77,6 +96,9 @@ export function createTimeline(container, ctx) {
     firstBtn.title = t('first');
     lastBtn.title = t('last');
     range.setAttribute('aria-label', t('timeline'));
+    speedSeg.setAttribute('aria-label', t('speed'));
+    speedSeg.title = t('speed');
+    for (const b of speedBtns) b.setAttribute('aria-pressed', String(+b.dataset.speed === (st.speed || 1)));
     prevBtn.disabled = firstBtn.disabled = st.period <= 0;
     nextBtn.disabled = lastBtn.disabled = st.period >= periods.length - 1;
     ends.children[0].textContent = ctx.periodLabel(0);

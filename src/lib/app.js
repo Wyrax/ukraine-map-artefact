@@ -8,7 +8,7 @@ import { formatValue } from './core/format.js';
 import { prepareData, buildMeasures, domainOf, valuesOf, flowTable } from './core/data.js';
 import { createMap } from './core/map.js';
 import { createTooltip } from './core/tooltip.js';
-import { createTimeline } from './core/timeline.js';
+import { createTimeline, SPEEDS } from './core/timeline.js';
 import { encodeSnapshot, decodeSnapshot, isSnapshotCode, textDiff, textApply } from './core/snapshot.js';
 import { mountTextEditor, TEXT_FIELDS } from './core/editor.js';
 import { BY_ID, REGIONS } from '../map/catalog.js';
@@ -90,6 +90,8 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
     // bottom blocks ("Налаштування панелей", "Таблиця даних") open or closed, and per-panel choices
     panelCfgOpen: false,
     tableOpen: false,
+    // timeline playback speed: ×1, ×2 or ×3 (options.interval per period at ×1)
+    speed: 1,
     // the data table's tab: "regions" (one row per region) or "flows" (one row per pair, when the data has flows)
     tableView: 'regions',
     panelOpts: {},
@@ -100,7 +102,7 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
   const baseText = (key) => (key === 'source' || key === 'updated' ? raw.meta?.[key] : config[key]);
   const TEXT_KEYS = { eyebrow: 'e', title: 't', subtitle: 's', source: 'r' };
   // short keys keep the link short; the period travels as its id so it survives months being added later
-  const SNAP = { m: 'mode', p: 'period', l: 'lang', s: 'selected', n: 'labels', o: 'occupation', c: 'palette', v: 'viewOpts', h: 'hiddenPanels', k: 'collapsedPanels', g: 'panelCfgOpen', t: 'tableOpen', f: 'tableView', q: 'panelOpts' };
+  const SNAP = { m: 'mode', p: 'period', l: 'lang', s: 'selected', n: 'labels', o: 'occupation', c: 'palette', v: 'viewOpts', h: 'hiddenPanels', k: 'collapsedPanels', g: 'panelCfgOpen', t: 'tableOpen', f: 'tableView', z: 'speed', q: 'panelOpts' };
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const isFlat = (o) => !!o && typeof o === 'object' && !Array.isArray(o) && Object.values(o).every((v) => ['string', 'number', 'boolean'].includes(typeof v));
   const strList = (v) => (Array.isArray(v) ? v.map(String) : null);
@@ -144,6 +146,7 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
     if (typeof o.g === 'boolean') st.panelCfgOpen = o.g;
     if (typeof o.t === 'boolean') st.tableOpen = o.t;
     if (o.f === 'flows' && data.flows.length) st.tableView = 'flows';
+    if (SPEEDS.includes(o.z)) st.speed = o.z;
     if (o.q && typeof o.q === 'object' && !Array.isArray(o.q) && Object.values(o.q).every(isFlat)) st.panelOpts = o.q;
     if (o.x && typeof o.x === 'object') {
       const texts = {};
