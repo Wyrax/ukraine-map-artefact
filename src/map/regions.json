@@ -176,6 +176,9 @@
     },
     "progress": {
      "move": -2
+    },
+    "radar": {
+     "move": -2
     }
    },
    "capital": [
@@ -204,14 +207,17 @@
     "bubbles": {
      "lines": -2
     },
+    "progress": {
+     "lines": -2
+    },
     "pies": {
      "move": -2
     },
     "radial": {
-     "lines": -2
+     "move": -2
     },
-    "progress": {
-     "lines": -2
+    "radar": {
+     "move": -2
     }
    },
    "capital": [
@@ -473,6 +479,9 @@
    "glyphView": {
     "bubbles": {
      "move": -2
+    },
+    "radar": {
+     "move": -2
     }
    },
    "capital": [
@@ -627,6 +636,12 @@
       -1.85,
       0
      ]
+    },
+    "radar": {
+     "move": [
+      -1.5,
+      0
+     ]
     }
    },
    "capital": [
@@ -730,6 +745,12 @@
    ],
    "labelLines": -1,
    "glyphView": {
+    "bars": {
+     "move": -2
+    },
+    "stacked": {
+     "move": -2
+    },
     "bubbles": {
      "lines": -2,
      "move": -2
@@ -738,17 +759,14 @@
      "lines": -2,
      "move": -2
     },
-    "radial": {
-     "lines": -2
-    },
     "progress": {
      "lines": -2,
      "move": -2
     },
-    "bars": {
+    "radial": {
      "move": -2
     },
-    "stacked": {
+    "radar": {
      "move": -2
     }
    },

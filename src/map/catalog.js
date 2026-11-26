@@ -8,7 +8,8 @@
 // kind    oblast | city | ar (Autonomous Republic)
 // short   label text on the map; full = official name
 // city    administrative centre [lat, lon] (used to georeference the map)
-// abbr    short name for the hex tile map
+// abbr    short name for the hex tile map with glyphs (on the plain hex map the full short name is fitted to the tile)
+// wrap    where a long name breaks onto two lines on a hex tile ("Дніпро-|петровська"); names with a hyphen break after it
 // hex     [col, row] on the hex tile map (odd rows shifted right by half a hex)
 // alt     extra spellings accepted when importing data (lower-case, apostrophes removed)
 
@@ -32,8 +33,8 @@ export const REGIONS = [
   { id: 'UA-26', code: '26', koatuu: '2600000000', katottg: 'UA26000000000069363', kind: 'oblast', short: { uk: 'Івано-Франківська', en: 'Ivano-Frankivsk' }, full: { uk: 'Івано-Франківська область', en: 'Ivano-Frankivsk Oblast' }, city: [48.922, 24.711], abbr: { uk: 'Ів.-Фр.', en: 'Iv.-Fr.' }, hex: [1, 2], alt: ['прикарпаття', 'івано франківська', 'ivano frankivska', 'ivano frankivsk', 'ивано франковская'] },
   { id: 'UA-77', code: '73', koatuu: '7300000000', katottg: 'UA73000000000044923', kind: 'oblast', short: { uk: 'Чернівецька', en: 'Chernivtsi' }, full: { uk: 'Чернівецька область', en: 'Chernivtsi Oblast' }, city: [48.292, 25.936], abbr: { uk: 'Чернівці', en: 'Chernivtsi' }, hex: [2, 2], alt: ['буковина', 'chernivetska', 'chernovtsy', 'черновицкая'] },
   { id: 'UA-05', code: '05', koatuu: '0500000000', katottg: 'UA05000000000010236', kind: 'oblast', short: { uk: 'Вінницька', en: 'Vinnytsia' }, full: { uk: 'Вінницька область', en: 'Vinnytsia Oblast' }, city: [49.233, 28.468], abbr: { uk: 'Вінниця', en: 'Vinnytsia' }, hex: [3, 2], alt: ['вінниччина', 'vinnytska', 'vinnitsa', 'винницкая'] },
-  { id: 'UA-35', code: '35', koatuu: '3500000000', katottg: 'UA35000000000016081', kind: 'oblast', short: { uk: 'Кіровоградська', en: 'Kirovohrad' }, full: { uk: 'Кіровоградська область', en: 'Kirovohrad Oblast' }, city: [48.508, 32.262], abbr: { uk: 'Кіровогр.', en: 'Kirovohr.' }, hex: [4, 2], alt: ['кіровоградщина', 'kirovohradska', 'kropyvnytskyi', 'кропивницька', 'kirovograd', 'кировоградская'] },
-  { id: 'UA-12', code: '12', koatuu: '1200000000', katottg: 'UA12000000000090473', kind: 'oblast', short: { uk: 'Дніпропетровська', en: 'Dnipropetrovsk' }, full: { uk: 'Дніпропетровська область', en: 'Dnipropetrovsk Oblast' }, city: [48.464, 35.046], abbr: { uk: 'Дніпро', en: 'Dnipro' }, hex: [5, 2], alt: ['дніпропетровщина', 'дніпровська', 'січеславська', 'dnipropetrovska', 'dnipro', 'днепропетровская'] },
+  { id: 'UA-35', code: '35', koatuu: '3500000000', katottg: 'UA35000000000016081', kind: 'oblast', short: { uk: 'Кіровоградська', en: 'Kirovohrad' }, full: { uk: 'Кіровоградська область', en: 'Kirovohrad Oblast' }, city: [48.508, 32.262], abbr: { uk: 'Кіровогр.', en: 'Kirovohr.' }, wrap: { uk: 'Кірово-|градська' }, hex: [4, 2], alt: ['кіровоградщина', 'kirovohradska', 'kropyvnytskyi', 'кропивницька', 'kirovograd', 'кировоградская'] },
+  { id: 'UA-12', code: '12', koatuu: '1200000000', katottg: 'UA12000000000090473', kind: 'oblast', short: { uk: 'Дніпропетровська', en: 'Dnipropetrovsk' }, full: { uk: 'Дніпропетровська область', en: 'Dnipropetrovsk Oblast' }, city: [48.464, 35.046], abbr: { uk: 'Дніпро', en: 'Dnipro' }, wrap: { uk: 'Дніпро-|петровська' }, hex: [5, 2], alt: ['дніпропетровщина', 'дніпровська', 'січеславська', 'dnipropetrovska', 'dnipro', 'днепропетровская'] },
   { id: 'UA-14', code: '14', koatuu: '1400000000', katottg: 'UA14000000000091971', kind: 'oblast', short: { uk: 'Донецька', en: 'Donetsk' }, full: { uk: 'Донецька область', en: 'Donetsk Oblast' }, city: [48.016, 37.803], abbr: { uk: 'Донецьк', en: 'Donetsk' }, hex: [6, 2], alt: ['донеччина', 'donetska', 'донецкая'] },
   { id: 'UA-09', code: '44', koatuu: '4400000000', katottg: 'UA44000000000018893', kind: 'oblast', short: { uk: 'Луганська', en: 'Luhansk' }, full: { uk: 'Луганська область', en: 'Luhansk Oblast' }, city: [48.574, 39.308], abbr: { uk: 'Луганськ', en: 'Luhansk' }, hex: [7, 2], alt: ['луганщина', 'luhanska', 'lugansk', 'луганская'] },
 
@@ -43,7 +44,7 @@ export const REGIONS = [
 
   { id: 'UA-65', code: '65', koatuu: '6500000000', katottg: 'UA65000000000030969', kind: 'oblast', short: { uk: 'Херсонська', en: 'Kherson' }, full: { uk: 'Херсонська область', en: 'Kherson Oblast' }, city: [46.636, 32.617], abbr: { uk: 'Херсон', en: 'Kherson' }, hex: [5, 4], alt: ['херсонщина', 'khersonska', 'херсонская'] },
 
-  { id: 'UA-40', code: '85', koatuu: '8500000000', katottg: 'UA85000000000065278', kind: 'city', short: { uk: 'Севастополь', en: 'Sevastopol' }, full: { uk: 'м. Севастополь', en: 'Sevastopol City' }, city: [44.616, 33.525], abbr: { uk: 'Севастоп.', en: 'Sevastop.' }, hex: [4, 5], alt: ['севастополь', 'місто севастополь', 'м севастополь', 'sevastopol', 'city of sevastopol', 'г севастополь'] },
+  { id: 'UA-40', code: '85', koatuu: '8500000000', katottg: 'UA85000000000065278', kind: 'city', short: { uk: 'Севастополь', en: 'Sevastopol' }, full: { uk: 'м. Севастополь', en: 'Sevastopol City' }, city: [44.616, 33.525], abbr: { uk: 'Севаст.', en: 'Sevast.' }, hex: [4, 5], alt: ['севастополь', 'місто севастополь', 'м севастополь', 'sevastopol', 'city of sevastopol', 'г севастополь'] },
   { id: 'UA-43', code: '01', koatuu: '0100000000', katottg: 'UA01000000000013043', kind: 'ar', short: { uk: 'АР Крим', en: 'Crimea' }, full: { uk: 'Автономна Республіка Крим', en: 'Autonomous Republic of Crimea' }, city: [44.952, 34.102], abbr: { uk: 'Крим', en: 'Crimea' }, hex: [5, 5], alt: ['крим', 'ар крим', 'crimea', 'ar crimea', 'республіка крим', 'крым', 'республика крым'] },
 ];
 

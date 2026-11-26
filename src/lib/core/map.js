@@ -169,13 +169,37 @@ export function createMap(frame, ctx) {
       // keep labels ~11px on screen whatever the rendered map width (hex labels also must fit the tile)
       const fs = layout === 'hex' ? Math.min(10.5 / api.scale(), R * 0.25) : api.labelSize();
       labelsG.setAttribute('font-size', fs.toFixed(2));
+      // A full name on a hex tile: shrunk to fit the tile's width; a name that would shrink below 80% goes on two
+      // lines instead (after its hyphen, or where the catalog's `wrap` says), centred on y or ending at it.
+      const maxW = Math.sqrt(3) * (R - 1.5) * 0.88;
+      const hexName = (r, name, lang, x, y, centred) => {
+        const text = (t, ty) => labelsG.appendChild(s('text', { x, y: ty, class: 'map-label map-label--hex', 'data-region': r.id }, t));
+        const fit = (el) => Math.min(1, maxW / Math.max(1, el.getComputedTextLength()));
+        const one = text(name, y);
+        const k = fit(one);
+        const split = name.includes('-') && !name.endsWith('-') ? name.replace('-', '-|') : r.wrap?.[lang];
+        if (k >= 0.8 || !split) {
+          if (k < 1) one.style.fontSize = `${(1.02 * k).toFixed(3)}em`; // the class sets 1.02em
+          return;
+        }
+        one.remove();
+        const lines = split.split('|').map((t) => text(t, y));
+        const k2 = Math.min(...lines.map(fit));
+        const lh = fs * 1.02 * k2 * 1.1;
+        lines.forEach((el, i) => {
+          el.setAttribute('y', centred ? y + (i - 0.5) * lh : y - (lines.length - 1 - i) * lh);
+          if (k2 < 1) el.style.fontSize = `${(1.02 * k2).toFixed(3)}em`;
+        });
+      };
       for (const r of REGIONS) {
         const name = r.short[lang] || r.short.uk;
         const [x, y] = api.anchor(r.id);
         if (layout === 'hex') {
-          const abbr = r.abbr?.[lang] || name;
           const v = value?.(r.id);
-          if (show) labelsG.appendChild(s('text', { x, y: offset ? y - R * 0.56 : v ? y - R * 0.1 : y + R * 0.08, class: 'map-label map-label--hex', 'data-region': r.id }, abbr));
+          const ny = offset ? y - R * 0.56 : v ? y - R * 0.1 : y + R * 0.08;
+          // with a glyph on the tile the name is abbreviated ("Дніпро"); on the plain hex map it is written in full
+          if (show && offset) labelsG.appendChild(s('text', { x, y: ny, class: 'map-label map-label--hex', 'data-region': r.id }, r.abbr?.[lang] || name));
+          else if (show) hexName(r, name, lang, x, ny, !v);
           if (v) labelsG.appendChild(s('text', { x, y: show ? y + R * 0.38 : y + R * 0.15, class: 'map-value', 'text-anchor': 'middle', 'data-region': r.id }, v));
         } else {
           const city = r.kind === 'city';

@@ -159,7 +159,12 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
   lines so they match the names at every width (`map.anchor()` applies `move`; glyphs are redrawn on resize).
   Bubbles: Sumy, Donetsk, Zaporizhzhia, Kherson, Crimea and Vinnytsia two lines up, Mykolaiv 1.85 lines left. Pies:
   Sumy, Crimea, Chernihiv and the Lviv pie (not its name) two lines up, Mykolaiv 1.5 left. Progress: Sumy and Crimea
-  two lines up. The bubble legend shows three sizes (e.g. 5 000 / 2 500 / 1 000), labels kept apart.
+  two lines up. Radial bars: the Crimea and Lviv glyphs two lines up, their names under them. Radar: Crimea, Lviv,
+  Sumy and Vinnytsia two lines up, Mykolaiv 1.5 left. The bubble legend shows three sizes (e.g. 5 000 / 2 500 /
+  1 000), labels kept apart.
+- Hex tiles: with a glyph on the tile (e.g. "Соти + кільця") names use the catalog `abbr` ("Дніпро", "Севаст.");
+  on the plain hex map they are written in full, shrunk to fit the tile, or on two lines when that would take them
+  below 80% (after the hyphen, or at the catalog's `wrap`: "Дніпро-|петровська", "Кірово-|градська").
   On columns (bars, stacked) every name sits under its columns at the same gap, since they grow upwards: Zakarpattia
   and Ternopil (names above the glyph elsewhere) have their columns moved 1.5 and 1 lines down so their names clear
   Ivano-Frankivsk and Khmelnytskyi; Kyiv Oblast and Crimea are moved 2 lines up. On round glyphs (bubbles, pies,
