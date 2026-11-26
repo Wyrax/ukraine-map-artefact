@@ -120,8 +120,24 @@ export function createMap(frame, ctx) {
       layout = l === 'hex' ? 'hex' : 'geo';
       svg.setAttribute('data-layout', layout);
     },
+    /** Layer types of the current view, set by the page before its layers mount (for per-view glyph moves). */
+    viewTypes: [],
+    /** Where a region's glyph (and its name) goes. On the geographic map a view can move it by whole text lines
+     *  (extract-map PLACEMENT.glyphView.<type>.move, + = down), so the step matches the names at every width. */
     anchor(id) {
-      return layout === 'hex' ? hexCenter[id] : ctx.regions.regions[id].anchor;
+      if (layout === 'hex') return hexCenter[id];
+      const geo = ctx.regions.regions[id];
+      const move = geo.glyphView && api.viewTypes.map((t) => geo.glyphView[t]?.move).find((m) => m);
+      return move ? [geo.anchor[0], geo.anchor[1] + move * api.labelSize()] : geo.anchor;
+    },
+    /** Font size (viewBox units) of names on the geographic map: ~11px on screen, between 7.5 and 16 units. */
+    labelSize() {
+      return Math.max(7.5, Math.min(16, 10.5 / api.scale()));
+    },
+    /** Glyph layers currently drawn; redrawn when the map is resized, since moved glyphs follow the text size. */
+    glyphLayers: new Set(),
+    redrawGlyphs() {
+      for (const l of api.glyphLayers) l.rerun();
     },
     /** Glyph box size (viewBox units) for the current layout. */
     /** Multiplier for glyph sizes, set per view by the "Розмір" view option. */
@@ -141,12 +157,13 @@ export function createMap(frame, ctx) {
      * show: region names; value(id): optional number shown under the name (or alone when names are off);
      * offset: glyph half-size, names go below (or above) it; offsetFor(id) → { below, above } overrides it per region.
      */
-    renderLabels({ show, lang, offset = 0, offsetFor, value }) {
+    // glyph: the type of the glyph layer on the map ("bubbles", "bars"…), for per-view name placement (glyphView)
+    // inside: the glyphs show their numbers inside themselves (progress rings), so names are not lifted into them
+    renderLabels({ show, lang, offset = 0, offsetFor, value, glyph, inside = false }) {
       clear(labelsG);
       if (!show && !value) return;
       // keep labels ~11px on screen whatever the rendered map width (hex labels also must fit the tile)
-      const px = 10.5 / api.scale();
-      const fs = layout === 'hex' ? Math.min(px, R * 0.25) : Math.max(7.5, Math.min(16, px));
+      const fs = layout === 'hex' ? Math.min(10.5 / api.scale(), R * 0.25) : api.labelSize();
       labelsG.setAttribute('font-size', fs.toFixed(2));
       for (const r of REGIONS) {
         const name = r.short[lang] || r.short.uk;
@@ -162,7 +179,13 @@ export function createMap(frame, ctx) {
           const o = offsetFor?.(r.id) || { below: offset, above: offset };
           let at;
           if (city) at = offset ? { x, y: y + o.below + 7, anchor: 'middle' } : { x: x + geo.r + 3, y: y + 3, anchor: 'start' };
-          else if (offset) at = { x, y: geo.glyphLabel === 'above' ? y - o.above - 3 - (geo.glyphLabelDy || 0) : y + o.below + 7 + (geo.glyphLabelDy || 0), anchor: 'middle' };
+          else if (offset) {
+            // per-view overrides (extract-map PLACEMENT.glyphView): side, extra gap, whole text lines
+            const gv = geo.glyphView?.[glyph] || {};
+            const dy = gv.dy ?? geo.glyphLabelDy ?? 0;
+            const lift = inside ? 0 : (gv.lines || 0) * fs;
+            at = { x, y: ((gv.label ?? geo.glyphLabel) === 'above' ? y - o.above - 3 - dy : y + o.below + 7 + dy) + lift, anchor: 'middle' };
+          }
           // label point from the source map (with fixes from extract-map), optionally lifted by whole text lines
           else at = { x: geo.label[0], y: geo.label[1] + (geo.labelLines || 0) * fs, anchor: 'middle' };
           const v = value?.(r.id);

@@ -113,6 +113,14 @@
     458.4,
     227.3
    ],
+   "glyphView": {
+    "bars": {
+     "move": -2
+    },
+    "stacked": {
+     "move": -2
+    }
+   },
    "capital": null,
    "bbox": [
     407.8,
@@ -176,6 +184,17 @@
     94.9,
     225.6
    ],
+   "glyphView": {
+    "bubbles": {
+     "lines": -2
+    },
+    "pies": {
+     "lines": -2
+    },
+    "radial": {
+     "lines": -2
+    }
+   },
    "capital": [
     120,
     201.4
@@ -199,6 +218,16 @@
     204.3
    ],
    "glyphLabel": "above",
+   "glyphView": {
+    "bars": {
+     "label": "below",
+     "move": 1
+    },
+    "stacked": {
+     "label": "below",
+     "move": 1
+    }
+   },
    "capital": [
     203.9,
     226.8
@@ -221,7 +250,7 @@
     278.1,
     272.2
    ],
-   "labelLines": -1,
+   "labelLines": -2,
    "capital": [
     280.6,
     245.4
@@ -266,6 +295,7 @@
     529.1,
     277.7
    ],
+   "labelLines": -1,
    "capital": [
     550.7,
     252.5
@@ -335,6 +365,16 @@
     324.3
    ],
    "glyphLabel": "above",
+   "glyphView": {
+    "bars": {
+     "label": "below",
+     "move": 1.5
+    },
+    "stacked": {
+     "label": "below",
+     "move": 1.5
+    }
+   },
    "capital": [
     17.5,
     282.5
@@ -380,6 +420,14 @@
     346.5
    ],
    "glyphLabelDy": 8,
+   "glyphView": {
+    "bars": {
+     "dy": 0
+    },
+    "stacked": {
+     "dy": 0
+    }
+   },
    "capital": [
     216,
     330.9
@@ -628,6 +676,23 @@
     604.7
    ],
    "labelLines": -1,
+   "glyphView": {
+    "bubbles": {
+     "lines": -2
+    },
+    "pies": {
+     "lines": -2
+    },
+    "radial": {
+     "lines": -2
+    },
+    "bars": {
+     "move": -2
+    },
+    "stacked": {
+     "move": -2
+    }
+   },
    "capital": [
     673.2,
     625.3

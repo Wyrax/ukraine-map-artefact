@@ -405,6 +405,7 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
     map.setLayout(activeMode.layout || 'geo');
     root.classList.toggle('is-hex', map.layout === 'hex');
     map.glyphScale = optValue('*', 'glyphScale', 1);
+    map.viewTypes = (activeMode.layers || []).map((l) => l.type); // per-view glyph moves (glyphView.<type>.move)
     // one "values" switch per view (the first layer that offers it); every layer that can show numbers follows it,
     // so e.g. the progress rings put the numbers inside themselves
     let modeValues;
@@ -498,6 +499,8 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
       lang: st.lang,
       offset: hasGlyph ? map.glyphSize() / 2 : 0,
       offsetFor: withOffset ? (id) => withOffset.labelOffset(id) : null,
+      glyph: active.find((l) => l.glyph)?.config?.type,
+      inside: active.some((l) => l.valuesInside), // numbers inside the rings: names lifted into a ring would cover them
       value: vid ? (id) => (ctx.measure(vid).get(id, st.period) == null ? '' : ctx.fmt(ctx.measure(vid).get(id, st.period), vid)) : null,
     });
   }
@@ -958,6 +961,7 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
     rw = w;
     for (const l of active) l.resize?.();
     for (const p of panels) p.resize?.();
+    map.redrawGlyphs(); // glyphs moved by text lines follow the new text size
     renderLabels();
     // in "auto" mode the names follow the width: keep the "Назви" chip in step
     if (labelsOn() !== autoLabels) {

@@ -13,12 +13,14 @@ export function glyphLayer(ctx, kind) {
     g.appendChild(nodes[r.id]);
   }
   const owner = {};
-  return {
+  let last = null;
+  const layer = {
     g,
     nodes,
     ids: REGIONS.map((r) => r.id),
     /** compute(regionId, period) → numbers; draw(node, values, [x, y], size, regionId) */
     run(compute, draw) {
+      last = [compute, draw];
       const p = ctx.period();
       const target = {};
       for (const id of this.ids) target[id] = compute(id, p);
@@ -27,6 +29,10 @@ export function glyphLayer(ctx, kind) {
         for (const id of this.ids) draw(nodes[id], vals[id], ctx.map.anchor(id), size, id);
       });
     },
+    /** Draws the last run again (same values) — after a resize moves anchors that follow the text size. */
+    rerun() {
+      if (last) this.run(...last);
+    },
     /** Draw larger glyphs first so small ones stay visible on top. */
     order(sizeOf) {
       const sorted = [...this.ids].sort((a, b) => sizeOf(b) - sizeOf(a));
@@ -34,10 +40,13 @@ export function glyphLayer(ctx, kind) {
     },
     destroy() {
       if (owner._raf) cancelAnimationFrame(owner._raf);
+      ctx.map.glyphLayers.delete(layer);
       clear(g);
       g.remove();
     },
   };
+  ctx.map.glyphLayers.add(layer);
+  return layer;
 }
 
 /**

@@ -151,8 +151,16 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
   OSINT), occupied + ORDLO + Crimea, grey zone excluded. The toggle shows `labelYear` (the user chose **2027**; set with
   `--label-year`, kept on refresh until the snapshot is newer); the footnote always gives the real snapshot date.
   Refresh it with `npm run occupation` before republishing.
-- Kyiv Oblast's glyph keeps clear of the Kyiv circle and its name sits far south. On every map Ternopil's name sits above
-  its glyph spot and Khmelnytskyi's below it (`labelAtGlyph` in extract-map), so the two never touch.
+- Kyiv Oblast's glyph keeps clear of the Kyiv circle and its name sits far south. Ternopil's name sits above its glyph
+  spot and Khmelnytskyi's below it (`labelAtGlyph` in extract-map), so the two never touch.
+- Per-view placement on glyph maps: `glyphView` in extract-map's `PLACEMENT`, keyed by layer type: `label`
+  (above/below), `dy` (extra gap, units), `lines` (name only) and `move` (glyph and name together), the last two in
+  text lines so they match the names at every width (`map.anchor()` applies `move`; glyphs are redrawn on resize).
+  On columns (bars, stacked) every name sits under its columns at the same gap, since they grow upwards: Zakarpattia
+  and Ternopil (names above the glyph elsewhere) have their columns moved 1.5 and 1 lines down so their names clear
+  Ivano-Frankivsk and Khmelnytskyi; Kyiv Oblast and Crimea are moved 2 lines up. On round glyphs (bubbles, pies,
+  radial bars, progress rings) the Crimea and Lviv names are two lines up, except while the rings show their numbers
+  inside (`valuesInside`): then no name is lifted into a ring.
 - Crimea and Sevastopol must never look apart from other regions (no special colour); in demo data Sevastopol
   shares Crimea's monthly totals so the circle never stands out from the peninsula.
 - Hex layout positions live in `catalog.js` (`hex: [col, row]`, odd rows shifted right).
