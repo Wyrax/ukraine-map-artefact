@@ -120,15 +120,19 @@ export function createMap(frame, ctx) {
       layout = l === 'hex' ? 'hex' : 'geo';
       svg.setAttribute('data-layout', layout);
     },
-    /** Layer types of the current view, set by the page before its layers mount (for per-view glyph moves). */
+    /** Glyph kinds of the current view (layer types; a radial layer with one value is "progress"), set by the page
+     *  before its layers mount (for per-view glyph moves). */
     viewTypes: [],
     /** Where a region's glyph (and its name) goes. On the geographic map a view can move it by whole text lines
-     *  (extract-map PLACEMENT.glyphView.<type>.move, + = down), so the step matches the names at every width. */
+     *  (extract-map PLACEMENT.glyphView.<kind>.move: dy, or [dx, dy]; + = down / right), so the step matches the
+     *  names at every width. */
     anchor(id) {
       if (layout === 'hex') return hexCenter[id];
       const geo = ctx.regions.regions[id];
       const move = geo.glyphView && api.viewTypes.map((t) => geo.glyphView[t]?.move).find((m) => m);
-      return move ? [geo.anchor[0], geo.anchor[1] + move * api.labelSize()] : geo.anchor;
+      if (!move) return geo.anchor;
+      const [dx, dy] = Array.isArray(move) ? move : [0, move];
+      return [geo.anchor[0] + dx * api.labelSize(), geo.anchor[1] + dy * api.labelSize()];
     },
     /** Font size (viewBox units) of names on the geographic map: ~11px on screen, between 7.5 and 16 units. */
     labelSize() {

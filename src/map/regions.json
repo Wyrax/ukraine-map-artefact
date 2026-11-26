@@ -140,6 +140,11 @@
     532.9,
     92.8
    ],
+   "glyphView": {
+    "pies": {
+     "move": -2
+    }
+   },
    "capital": [
     511.7,
     83
@@ -162,6 +167,17 @@
     670.2,
     132.8
    ],
+   "glyphView": {
+    "bubbles": {
+     "move": -2
+    },
+    "pies": {
+     "move": -2
+    },
+    "progress": {
+     "move": -2
+    }
+   },
    "capital": [
     694.4,
     124.6
@@ -189,9 +205,12 @@
      "lines": -2
     },
     "pies": {
-     "lines": -2
+     "move": -2
     },
     "radial": {
+     "lines": -2
+    },
+    "progress": {
      "lines": -2
     }
    },
@@ -451,6 +470,11 @@
     300.6
    ],
    "labelLines": -1,
+   "glyphView": {
+    "bubbles": {
+     "move": -2
+    }
+   },
    "capital": [
     360.1,
     264.4
@@ -519,6 +543,11 @@
     865.1,
     345.7
    ],
+   "glyphView": {
+    "bubbles": {
+     "move": -2
+    }
+   },
    "capital": [
     867.5,
     363.1
@@ -586,6 +615,20 @@
     426.4
    ],
    "labelLines": -1,
+   "glyphView": {
+    "pies": {
+     "move": [
+      -1.5,
+      0
+     ]
+    },
+    "bubbles": {
+     "move": [
+      -1.85,
+      0
+     ]
+    }
+   },
    "capital": [
     551.2,
     456.6
@@ -609,6 +652,11 @@
     439.6
    ],
    "labelLines": -1,
+   "glyphView": {
+    "bubbles": {
+     "move": -2
+    }
+   },
    "capital": [
     725,
     383
@@ -631,6 +679,11 @@
     646.7,
     484.3
    ],
+   "glyphView": {
+    "bubbles": {
+     "move": -2
+    }
+   },
    "capital": [
     589.3,
     479.8
@@ -678,13 +731,19 @@
    "labelLines": -1,
    "glyphView": {
     "bubbles": {
-     "lines": -2
+     "lines": -2,
+     "move": -2
     },
     "pies": {
-     "lines": -2
+     "lines": -2,
+     "move": -2
     },
     "radial": {
      "lines": -2
+    },
+    "progress": {
+     "lines": -2,
+     "move": -2
     },
     "bars": {
      "move": -2

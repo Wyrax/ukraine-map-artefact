@@ -32,6 +32,9 @@ const store = {
 };
 /** Stable key of a side panel: its config id, else type + position. */
 const panelKey = (pc, i) => pc.id || `${pc.type}-${i}`;
+/** The kind of glyph a layer draws, for per-view placement: its type, except that a radial layer with one value is a
+ *  progress ring ("progress"), drawn and placed apart from radial bars ("radial"). */
+const glyphKind = (lc) => (lc?.type === 'radial' && lc.value ? 'progress' : lc?.type);
 function storedHiddenPanels() {
   try {
     const v = JSON.parse(store.get('ua-panels') || 'null');
@@ -405,7 +408,7 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
     map.setLayout(activeMode.layout || 'geo');
     root.classList.toggle('is-hex', map.layout === 'hex');
     map.glyphScale = optValue('*', 'glyphScale', 1);
-    map.viewTypes = (activeMode.layers || []).map((l) => l.type); // per-view glyph moves (glyphView.<type>.move)
+    map.viewTypes = (activeMode.layers || []).map(glyphKind); // per-view glyph moves (glyphView.<kind>.move)
     // one "values" switch per view (the first layer that offers it); every layer that can show numbers follows it,
     // so e.g. the progress rings put the numbers inside themselves
     let modeValues;
@@ -499,7 +502,7 @@ function start({ layers: layerTypes = {}, panels: panelTypes = {} } = {}, linkSn
       lang: st.lang,
       offset: hasGlyph ? map.glyphSize() / 2 : 0,
       offsetFor: withOffset ? (id) => withOffset.labelOffset(id) : null,
-      glyph: active.find((l) => l.glyph)?.config?.type,
+      glyph: glyphKind(active.find((l) => l.glyph)?.config),
       inside: active.some((l) => l.valuesInside), // numbers inside the rings: names lifted into a ring would cover them
       value: vid ? (id) => (ctx.measure(vid).get(id, st.period) == null ? '' : ctx.fmt(ctx.measure(vid).get(id, st.period), vid)) : null,
     });

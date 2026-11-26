@@ -153,9 +153,13 @@ For the preview pane add a config to `.claude/launch.json` (copy the `showcase` 
   Refresh it with `npm run occupation` before republishing.
 - Kyiv Oblast's glyph keeps clear of the Kyiv circle and its name sits far south. Ternopil's name sits above its glyph
   spot and Khmelnytskyi's below it (`labelAtGlyph` in extract-map), so the two never touch.
-- Per-view placement on glyph maps: `glyphView` in extract-map's `PLACEMENT`, keyed by layer type: `label`
-  (above/below), `dy` (extra gap, units), `lines` (name only) and `move` (glyph and name together), the last two in
-  text lines so they match the names at every width (`map.anchor()` applies `move`; glyphs are redrawn on resize).
+- Per-view placement on glyph maps: `glyphView` in extract-map's `PLACEMENT`, keyed by glyph kind (the layer type;
+  a radial layer with one value is `progress`, apart from radial bars `radial`): `label` (above/below), `dy` (extra
+  gap, units), `lines` (name only) and `move` (glyph, name and number together: dy or [dx, dy]), the last two in text
+  lines so they match the names at every width (`map.anchor()` applies `move`; glyphs are redrawn on resize).
+  Bubbles: Sumy, Donetsk, Zaporizhzhia, Kherson, Crimea and Vinnytsia two lines up, Mykolaiv 1.85 lines left. Pies:
+  Sumy, Crimea, Chernihiv and the Lviv pie (not its name) two lines up, Mykolaiv 1.5 left. Progress: Sumy and Crimea
+  two lines up. The bubble legend shows three sizes (e.g. 5 000 / 2 500 / 1 000), labels kept apart.
   On columns (bars, stacked) every name sits under its columns at the same gap, since they grow upwards: Zakarpattia
   and Ternopil (names above the glyph elsewhere) have their columns moved 1.5 and 1 lines down so their names clear
   Ivano-Frankivsk and Khmelnytskyi; Kyiv Oblast and Crimea are moved 2 lines up. On round glyphs (bubbles, pies,

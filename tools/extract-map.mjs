@@ -68,7 +68,9 @@ const KNOWN_ISLANDS = [
 //                   columns with no extra gap; { bars: { move: -2 } } moves the columns and their name together by
 //                   two text lines (+ = down)
 const COLUMNS = (o) => ({ bars: o, stacked: o }); // the same placement on both column views
-const ROUND = (o) => ({ bubbles: o, pies: o, radial: o }); // … and on the round glyphs (radial = progress rings too)
+// … and on the round glyphs ("progress" = a radial layer with one value, "radial" = radial bars)
+const ROUND = (o) => ({ bubbles: o, pies: o, radial: o, progress: o });
+const UP2 = { move: -2 }; // a glyph with its name and number two text lines higher
 const PLACEMENT = {
   // Kyiv Oblast wraps around the Kyiv circle: keep its glyph clear of the city's glyph and name,
   // and put its own name far south, away from the circle and from a chart drawn on Kyiv.
@@ -86,28 +88,38 @@ const PLACEMENT = {
   'UA-21': { labelShift: [-6, 18], glyphLabel: 'above', glyphView: COLUMNS({ label: 'below', move: 1.5 }) },
   'UA-26': { labelShift: [4, -18] },
   // keeps "Вінницька" clear of "Хмельницька" on narrow maps; then one text line up, like its neighbour
-  'UA-05': { labelShift: [0, 10], labelLines: -1 },
+  'UA-05': { labelShift: [0, 10], labelLines: -1, glyphView: { bubbles: UP2 } },
   // the Chernivtsi glyph sat under the end of "Івано-Франківська" (written below IF's glyph): move it east,
   // as far as the narrowing oblast allows while staying clear of the Khmelnytskyi and Vinnytsia glyphs
   // and its name a little lower, clear of that IF name on narrow maps (under columns: the usual gap, like the others)
   'UA-77': { anchor: [270, 319], glyphLabelDy: 8, glyphView: COLUMNS({ dy: 0 }) },
   // the source map writes "Сумська" near the oblast's western border: centre it across the oblast instead
-  'UA-59': { labelShift: [26, 0] },
+  'UA-59': { labelShift: [26, 0], glyphView: { bubbles: UP2, pies: UP2, progress: UP2 } },
+  // bubble map: these glyphs (with names and numbers) two lines higher
+  'UA-14': { glyphView: { bubbles: UP2 } },
+  'UA-65': { glyphView: { bubbles: UP2 } },
   // names (and numbers) sitting low in their oblasts: one text line up (Kharkiv and Khmelnytskyi: two)
   'UA-63': { labelLines: -2 },
-  'UA-43': { labelLines: -1, glyphView: { ...ROUND({ lines: -2 }), ...COLUMNS({ move: -2 }) } },
+  // Crimea: name two lines up on round glyphs; on bubbles, pies and progress rings the glyph and name two more
+  'UA-43': {
+    labelLines: -1,
+    glyphView: { ...ROUND({ lines: -2 }), ...COLUMNS(UP2), ...Object.fromEntries(['bubbles', 'pies', 'progress'].map((k) => [k, { lines: -2, move: -2 }])) },
+  },
   'UA-71': { labelLines: -1 },
   // on round glyphs (bubbles, pies, rings) "Львівська" sits close above "Закарпатська" (and "АР Крим" on the
   // Sevastopol circle): two lines up
-  'UA-46': { glyphView: ROUND({ lines: -2 }) },
+  // on pies the pie goes up instead, so it no longer sits on the name (which stays where it was)
+  'UA-46': { glyphView: { ...ROUND({ lines: -2 }), pies: UP2 } },
   'UA-53': { labelLines: -1 },
   'UA-07': { labelLines: -1 },
   'UA-35': { labelLines: -1 },
-  'UA-23': { labelLines: -1 },
-  'UA-48': { labelLines: -1 },
+  'UA-23': { labelLines: -1, glyphView: { bubbles: UP2 } },
+  // pies: the Mykolaiv pie and its name a text size and a half to the left, towards the middle of the oblast (more
+  // would meet "Одеська" on narrow maps); on bubbles too (1.85: between "Одеська" and the raised "Херсонська")
+  'UA-48': { labelLines: -1, glyphView: { pies: { move: [-1.5, 0] }, bubbles: { move: [-1.85, 0] } } },
   // "Дніпропетровська" also to the right (towards the middle of the oblast), "Чернігівська" to the left
   'UA-12': { labelShift: [32, 0], labelLines: -1 },
-  'UA-74': { labelShift: [-20, 0] },
+  'UA-74': { labelShift: [-20, 0], glyphView: { pies: UP2 } },
 };
 const GLYPH_HALF = 29; // half of the default glyph box (options.glyphSize 58); map.js puts names 3 above / 7 below it
 

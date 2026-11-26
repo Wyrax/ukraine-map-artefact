@@ -37,13 +37,24 @@ export function sizeLegend({ title, values, radius, fmt, k, color = 'var(--c1)' 
   const w = rMax * 2 + 70;
   const hgt = rMax * 2 + 4;
   const svg = s('svg', { width: w, height: hgt, viewBox: `0 0 ${w} ${hgt}`, class: 'lg-size', 'aria-hidden': 'true' });
+  // labels at the circles' tops, kept at least one label height apart when the circles are small (narrow maps)
+  const GAP = 13;
+  let prevY = -Infinity;
   values.forEach((v, i) => {
     const r = rs[i];
     if (r <= 0) return;
     const cy = hgt - 2 - r;
+    const top = cy - r;
+    const ly = Math.max(top, prevY + GAP);
+    prevY = ly;
     svg.appendChild(s('circle', { cx: rMax, cy, r, fill: 'none', stroke: color, 'stroke-width': 1.25 }));
-    svg.appendChild(s('line', { x1: rMax, y1: cy - r, x2: rMax * 2 + 8, y2: cy - r, class: 'lg-size__tick' }));
-    svg.appendChild(s('text', { x: rMax * 2 + 11, y: cy - r + 3.5, class: 'lg-size__lab' }, fmt(v)));
+    svg.appendChild(s('polyline', { points: `${rMax},${top} ${rMax * 2 + 4},${top} ${rMax * 2 + 8},${ly}`, fill: 'none', class: 'lg-size__tick' }));
+    svg.appendChild(s('text', { x: rMax * 2 + 11, y: ly + 3.5, class: 'lg-size__lab' }, fmt(v)));
   });
+  // a label pushed below the smallest circle's top may need more room
+  if (prevY + 6 > hgt) {
+    svg.setAttribute('height', prevY + 6);
+    svg.setAttribute('viewBox', `0 0 ${w} ${prevY + 6}`);
+  }
   return h('div', { class: 'lg' }, title ? h('div', { class: 'lg__title' }, title) : null, svg);
 }

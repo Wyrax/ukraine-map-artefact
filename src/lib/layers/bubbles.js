@@ -6,6 +6,13 @@ import { formatTick } from '../core/format.js';
 import { sizeLegend } from '../core/legend.js';
 import { glyphLayer, child } from './_glyph.js';
 
+/** The largest "nice" number (1, 2, 2.5 or 5 × 10ⁿ) not above v. */
+function niceAtMost(v) {
+  if (!(v > 0)) return 0;
+  const p = 10 ** Math.floor(Math.log10(v));
+  return [5, 2.5, 2, 1].map((m) => m * p).find((x) => x <= v + 1e-9);
+}
+
 export default {
   options: (cfg) => [{ key: 'values', type: 'toggle', label: { uk: 'Цифри', en: 'Values' }, default: cfg.values ?? false }],
   mount(ctx, cfg) {
@@ -32,7 +39,9 @@ export default {
     function legend() {
       if (legendNode) legendNode.remove();
       const t = niceTicks(0, max, 3).filter((v) => v > 0 && v <= max);
-      const vals = [t[t.length - 1], t[Math.floor(t.length / 3)]].filter((v, i, a) => v && a.indexOf(v) === i);
+      const top = t[t.length - 1];
+      // three sizes: the largest nice tick, one below it and a small one (~a fifth: 5 000 → 2 500 → 1 000)
+      const vals = [top, t[Math.floor(t.length / 3)], niceAtMost(top / 5)].filter((v, i, a) => v && a.indexOf(v) === i && (i === 0 || v < a[i - 1]));
       legendNode = sizeLegend({ title: ctx.label(id), values: vals, radius: sqrtRadius(max, rMax()), fmt: (v) => formatTick(v, m.format, ctx.lang()), k: ctx.map.scale(), color });
       ctx.legend.add(legendNode);
     }
