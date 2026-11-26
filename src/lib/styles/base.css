@@ -214,11 +214,16 @@ body {
   background: var(--sel);
   font-weight: 600;
 }
+/* Swatches have fixed sizes of their own: they must not depend on the option's grid (mobile Safari does not always
+   lay out a <button> as a grid, and a ramp sized only by its grid column then collapses to nothing). */
 .pal__sw,
 .pal__dots {
-  display: flex;
+  display: inline-flex;
+  flex: none;
+  vertical-align: middle;
 }
 .pal__sw i {
+  flex: none;
   width: 9px;
   height: 12px;
   background: var(--l);
@@ -229,14 +234,17 @@ body {
 .pal__sw i:last-child {
   border-radius: 0 3px 3px 0;
 }
+.pal__sw--ramp {
+  width: 112px; /* 7 steps × 16px */
+}
 .pal__sw--ramp i {
-  flex: 1;
-  width: auto;
+  width: 16px;
 }
 .pal__dots {
   gap: 3px;
 }
 .pal__dots i {
+  flex: none;
   width: 9px;
   height: 9px;
   border-radius: 50%;
